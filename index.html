@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lista de Compras</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-image: url(https://img.freepik.com/fotos-gratis/foto-de-grande-angular-de-uma-unica-arvore-crescendo-sob-um-ceu-nublado-durante-um-por-do-sol-cercado-por-grama_181624-22807.jpg?w=826&t=st=1703364617~exp=1703365217~hmac=9b3135acfcb3c1290c421fcabb29416be315a5c6171f1e146b71b510aa47bdd2);
+      background-size: cover;
+      background-position: center;
+      height: 100vh;
+      font-family: Arial, sans-serif;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+      overflow-x: auto;
+      /* Adiciona scroll horizontal quando necessário */
+    }
+
+    th,
+    td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #f2f2f2;
+    }
+
+    button {
+      padding: 5px 10px;
+      margin-right: 5px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h2>Lista de Compras</h2>
+
+  <input type="text" id="item" placeholder="Item">
+  <input type="number" id="quantidade" placeholder="Quantidade">
+  <input type="number" id="preco" placeholder="Preço">
+  <button onclick="adicionarItem()">Adicionar</button>
+
+  <table id="tabela">
+    <tr>
+      <th>Item</th>
+      <th>Quantidade</th>
+      <th>Preço</th>
+      <th>Total</th>
+      <th>Ações</th>
+    </tr>
+  </table>
+
+  <div>
+    <strong>Total Geral: R$ <span id="totalGeral">0.00</span></strong>
+  </div>
+
+  <script>
+    var totalGeral = 0;
+
+    function adicionarItem() {
+      var itemInput = document.getElementById('item');
+      var quantidadeInput = document.getElementById('quantidade');
+      var precoInput = document.getElementById('preco');
+      var tabela = document.getElementById('tabela');
+      var totalGeralSpan = document.getElementById('totalGeral');
+
+      var item = itemInput.value;
+      var quantidade = parseInt(quantidadeInput.value);
+      var preco = parseFloat(precoInput.value);
+
+      if (item.trim() === '' || isNaN(quantidade) || quantidade <= 0 || isNaN(preco) || preco <= 0) {
+        alert('Por favor, insira um item válido, uma quantidade válida e um preço válido.');
+        return;
+      }
+
+      // Verifica se o item já está na lista
+      var linhas = tabela.rows;
+      for (var i = 1; i < linhas.length; i++) {
+        if (linhas[i].cells[0].innerText === item) {
+          // Atualiza a quantidade e o preço se o item já estiver na lista
+          linhas[i].cells[1].innerText = parseInt(linhas[i].cells[1].innerText) + quantidade;
+          linhas[i].cells[2].innerText = preco;
+          linhas[i].cells[3].innerText = (parseInt(linhas[i].cells[1].innerText) * preco).toFixed(2);
+          itemInput.value = '';
+          quantidadeInput.value = '';
+          precoInput.value = '';
+          atualizarTotalGeral();
+          return;
+        }
+      }
+
+      // Adiciona uma nova linha à tabela
+      var novaLinha = tabela.insertRow(-1);
+      var colunaItem = novaLinha.insertCell(0);
+      var colunaQuantidade = novaLinha.insertCell(1);
+      var colunaPreco = novaLinha.insertCell(2);
+      var colunaTotal = novaLinha.insertCell(3);
+      var colunaAcoes = novaLinha.insertCell(4);
+
+      colunaItem.innerText = item;
+      colunaQuantidade.innerText = quantidade;
+      colunaPreco.innerText = preco;
+      colunaTotal.innerText = (quantidade * preco).toFixed(2);
+
+      // Adiciona botões de ação (remover)
+      var botaoRemover = document.createElement('button');
+      botaoRemover.innerText = 'Remover';
+      botaoRemover.onclick = function () {
+        tabela.deleteRow(novaLinha.rowIndex);
+        atualizarTotalGeral();
+      };
+      colunaAcoes.appendChild(botaoRemover);
+
+      itemInput.value = '';
+      quantidadeInput.value = '';
+      precoInput.value = '';
+      atualizarTotalGeral();
+    }
+
+    function atualizarTotalGeral() {
+      var tabela = document.getElementById('tabela');
+      var linhas = tabela.rows;
+      var novoTotalGeral = 0;
+
+      for (var i = 1; i < linhas.length; i++) {
+        novoTotalGeral += parseFloat(linhas[i].cells[3].innerText);
+      }
+
+      totalGeral = novoTotalGeral;
+      document.getElementById('totalGeral').innerText = totalGeral.toFixed(2);
+    }
+  </script>
+
+</body>
+
+</html>
