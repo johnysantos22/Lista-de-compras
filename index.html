@@ -48,10 +48,8 @@
       margin-bottom: 10px;
       border: 1px solid #ddd;
       border-radius: 4px;
-    }
-
-    input {
-      width: 200px;
+      width: 100%;
+      box-sizing: border-box;
     }
 
     button {
@@ -80,6 +78,14 @@
 
     strong {
       color: #333;
+    }
+
+    /* Adiciona estilos para telas menores */
+    @media screen and (max-width: 600px) {
+      input,
+      button {
+        width: auto;
+      }
     }
   </style>
 </head>
