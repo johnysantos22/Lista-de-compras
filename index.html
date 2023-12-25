@@ -8,24 +8,33 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      background-size: cover;
-      background-position: center;
-      height: 100vh;
-      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    h2 {
+      color: #333;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-bottom: 20px;
+      margin-top: 20px;
       overflow-x: auto;
-      /* Adiciona scroll horizontal quando necessário */
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     }
 
     th,
     td {
       border: 1px solid #ddd;
-      padding: 8px;
+      padding: 10px;
       text-align: left;
     }
 
@@ -33,9 +42,44 @@
       background-color: #f2f2f2;
     }
 
+    input,
     button {
-      padding: 5px 10px;
-      margin-right: 5px;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+
+    input {
+      width: 200px;
+    }
+
+    button {
+      background-color: #4caf50;
+      color: #fff;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    button.clear {
+      background-color: #f44336;
+    }
+
+    button.clear:hover {
+      background-color: #d32f2f;
+    }
+
+    div {
+      margin-top: 10px;
+      text-align: center;
+    }
+
+    strong {
+      color: #333;
     }
   </style>
 </head>
@@ -48,7 +92,7 @@
   <input type="number" id="quantidade" placeholder="Quantidade">
   <input type="number" id="preco" placeholder="Preço">
   <button onclick="adicionarItem()">Adicionar</button>
-  <button onclick="limparTudo()">Limpar Tudo</button>
+  <button onclick="limparTudo()" class="clear">Limpar Tudo</button>
 
   <table id="tabela">
     <tr>
@@ -174,3 +218,4 @@
 </body>
 
 </html>
+
