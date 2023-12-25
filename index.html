@@ -48,6 +48,7 @@
   <input type="number" id="quantidade" placeholder="Quantidade">
   <input type="number" id="preco" placeholder="Preço">
   <button onclick="adicionarItem()">Adicionar</button>
+  <button onclick="limparTudo()">Limpar Tudo</button>
 
   <table id="tabela">
     <tr>
@@ -64,18 +65,24 @@
   </div>
 
   <script>
-    var totalGeral = 0;
+    let totalGeral = 0;
+    const tabela = document.getElementById('tabela');
+    const totalGeralSpan = document.getElementById('totalGeral');
 
-    function adicionarItem() {
-      var itemInput = document.getElementById('item');
-      var quantidadeInput = document.getElementById('quantidade');
-      var precoInput = document.getElementById('preco');
-      var tabela = document.getElementById('tabela');
-      var totalGeralSpan = document.getElementById('totalGeral');
+    // Carrega os dados salvos no armazenamento local
+    const dadosSalvos = JSON.parse(localStorage.getItem('listaCompras')) || [];
+    dadosSalvos.forEach(function (item) {
+      adicionarItem(item);
+    });
 
-      var item = itemInput.value;
-      var quantidade = parseInt(quantidadeInput.value);
-      var preco = parseFloat(precoInput.value);
+    function adicionarItem(itemSalvo) {
+      const itemInput = document.getElementById('item');
+      const quantidadeInput = document.getElementById('quantidade');
+      const precoInput = document.getElementById('preco');
+
+      const item = itemSalvo ? itemSalvo.item : itemInput.value.trim();
+      const quantidade = itemSalvo ? itemSalvo.quantidade : parseInt(quantidadeInput.value);
+      const preco = itemSalvo ? itemSalvo.preco : parseFloat(precoInput.value);
 
       if (item.trim() === '' || isNaN(quantidade) || quantidade <= 0 || isNaN(preco) || preco <= 0) {
         alert('Por favor, insira um item válido, uma quantidade válida e um preço válido.');
@@ -83,8 +90,8 @@
       }
 
       // Verifica se o item já está na lista
-      var linhas = tabela.rows;
-      for (var i = 1; i < linhas.length; i++) {
+      const linhas = tabela.rows;
+      for (let i = 1; i < linhas.length; i++) {
         if (linhas[i].cells[0].innerText === item) {
           // Atualiza a quantidade e o preço se o item já estiver na lista
           linhas[i].cells[1].innerText = parseInt(linhas[i].cells[1].innerText) + quantidade;
@@ -94,17 +101,18 @@
           quantidadeInput.value = '';
           precoInput.value = '';
           atualizarTotalGeral();
+          salvarDados();
           return;
         }
       }
 
       // Adiciona uma nova linha à tabela
-      var novaLinha = tabela.insertRow(-1);
-      var colunaItem = novaLinha.insertCell(0);
-      var colunaQuantidade = novaLinha.insertCell(1);
-      var colunaPreco = novaLinha.insertCell(2);
-      var colunaTotal = novaLinha.insertCell(3);
-      var colunaAcoes = novaLinha.insertCell(4);
+      const novaLinha = tabela.insertRow(-1);
+      const colunaItem = novaLinha.insertCell(0);
+      const colunaQuantidade = novaLinha.insertCell(1);
+      const colunaPreco = novaLinha.insertCell(2);
+      const colunaTotal = novaLinha.insertCell(3);
+      const colunaAcoes = novaLinha.insertCell(4);
 
       colunaItem.innerText = item;
       colunaQuantidade.innerText = quantidade;
@@ -112,11 +120,12 @@
       colunaTotal.innerText = (quantidade * preco).toFixed(2);
 
       // Adiciona botões de ação (remover)
-      var botaoRemover = document.createElement('button');
+      const botaoRemover = document.createElement('button');
       botaoRemover.innerText = 'Remover';
       botaoRemover.onclick = function () {
         tabela.deleteRow(novaLinha.rowIndex);
         atualizarTotalGeral();
+        salvarDados();
       };
       colunaAcoes.appendChild(botaoRemover);
 
@@ -124,19 +133,41 @@
       quantidadeInput.value = '';
       precoInput.value = '';
       atualizarTotalGeral();
+      salvarDados();
     }
 
     function atualizarTotalGeral() {
-      var tabela = document.getElementById('tabela');
-      var linhas = tabela.rows;
-      var novoTotalGeral = 0;
+      const linhas = tabela.rows;
+      let novoTotalGeral = 0;
 
-      for (var i = 1; i < linhas.length; i++) {
+      for (let i = 1; i < linhas.length; i++) {
         novoTotalGeral += parseFloat(linhas[i].cells[3].innerText);
       }
 
       totalGeral = novoTotalGeral;
-      document.getElementById('totalGeral').innerText = totalGeral.toFixed(2);
+      totalGeralSpan.innerText = totalGeral.toFixed(2);
+    }
+
+    function salvarDados() {
+      const dadosParaSalvar = [];
+      const linhas = tabela.rows;
+
+      for (let i = 1; i < linhas.length; i++) {
+        const item = linhas[i].cells[0].innerText;
+        const quantidade = parseInt(linhas[i].cells[1].innerText);
+        const preco = parseFloat(linhas[i].cells[2].innerText);
+        dadosParaSalvar.push({ item, quantidade, preco });
+      }
+
+      // Salva os dados no armazenamento local
+      localStorage.setItem('listaCompras', JSON.stringify(dadosParaSalvar));
+    }
+
+    function limparTudo() {
+      tabela.innerHTML = '<tr><th>Item</th><th>Quantidade</th><th>Preço</th><th>Total</th><th>Ações</th></tr>';
+      totalGeral = 0;
+      totalGeralSpan.innerText = totalGeral.toFixed(2);
+      salvarDados();
     }
   </script>
 
