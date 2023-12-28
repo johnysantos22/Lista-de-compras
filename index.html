@@ -15,6 +15,7 @@
       flex-direction: column;
       align-items: center;
       text-align: center;
+
     }
 
     h2 {
@@ -22,21 +23,28 @@
     }
 
     table {
-      width: 100%;
+      /* Remova a largura fixa da tabela */
+       width: 100%; 
       border-collapse: collapse;
       margin-top: 20px;
-      overflow-x: auto;
+      overflow-x:auto;
       background-color: #fff;
       border-radius: 8px;
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     }
 
+
+
     th,
     td {
       border: 1px solid #ddd;
-      padding: 10px;
-      text-align: left;
+      text-align: center;
+      overflow: visible;
+      white-space: normal;
     }
+
+
+
 
     th {
       background-color: #f2f2f2;
@@ -82,6 +90,7 @@
 
     /* Adiciona estilos para telas menores */
     @media screen and (max-width: 600px) {
+
       input,
       button {
         width: auto;
@@ -224,4 +233,3 @@
 </body>
 
 </html>
-
