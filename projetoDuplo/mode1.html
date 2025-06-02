@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Orçamento com PDF</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="container">
+    <h2>Faça Seu Orçamento</h2>
+
+    <div class="inputs">
+      <input type="text" id="item" placeholder="Item" />
+      <input type="number" id="quantidade" placeholder="Quantidade" />
+      <input type="number" id="preco" placeholder="Preço" step="0.01" />
+      <button onclick="adicionarItem()">Adicionar</button>
+      <button onclick="limparTudo()" class="clear">Limpar Tudo</button>
+      <button onclick="visualizarPDF()">Visualizar PDF</button>
+      <button onclick="salvarPDF()">Salvar PDF</button>
+    </div>
+
+    <div class="tabela-container">
+      <table id="tabela" border="1" cellspacing="0" cellpadding="5">
+        <tr>
+          <th>Item</th>
+          <th>Quantidade</th>
+          <th>Preço</th>
+          <th>Total</th>
+          <th>Ações</th>
+        </tr>
+      </table>
+
+      <div class="total">
+        <strong>Total Geral: R$ <span id="totalGeral">0.00</span></strong>
+      </div>
+    </div>
+
+    <!-- Pré-visualização do PDF -->
+    <iframe id="previewFrame" style="width:100%; height:600px; display:none; border:1px solid #ccc; margin-top:20px;"></iframe>
+  </div>
+
+  <!-- Bibliotecas jsPDF e AutoTable -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+
+  <!-- Seu JS -->
+  <script src="js/mode1.js"></script>
+</body>
+</html>
