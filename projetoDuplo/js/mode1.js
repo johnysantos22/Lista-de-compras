@@ -1,7 +1,5 @@
-// Variável para armazenar o PDF gerado
 let ultimoPDF = null;
 
-// Recupera dados ao carregar a página
 document.addEventListener("DOMContentLoaded", () => {
   if (localStorage.getItem("itens")) {
     const dadosSalvos = JSON.parse(localStorage.getItem("itens"));
@@ -12,7 +10,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 let listaItens = JSON.parse(localStorage.getItem("itens")) || [];
 
-// Função para formatar valores em moeda BRL
 function formatarBRL(valor) {
   return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
@@ -34,7 +31,6 @@ function adicionarItem() {
   inserirNaTabela(novoItem);
   atualizarTotalGeral();
 
-  // Limpa inputs
   document.getElementById("item").value = "";
   document.getElementById("quantidade").value = "";
   document.getElementById("preco").value = "";
@@ -86,62 +82,41 @@ function limparTudo() {
 }
 
 function visualizarPDF() {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
+  const doc = new jspdf.jsPDF();
 
-  doc.setFontSize(18);
-
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const texto = "Orçamento";
-  const textoWidth = doc.getTextWidth(texto);
-  const x = (pageWidth - textoWidth) / 2;
-  doc.text(texto, x, 20);
-
-  const headers = [["Item", "Quantidade", "Preço (R$)", "Total (R$)"]];
+  const headers = [["Item", "Quantidade", "Preço", "Total"]];
   const dados = listaItens.map(({ item, quantidade, preco }) => [
     item,
-    quantidade.toString(),
-    formatarBRL(preco),
-    formatarBRL(quantidade * preco),
+    quantidade,
+    preco.toLocaleString("pt-BR", { minimumFractionDigits: 2 }),
+    (quantidade * preco).toLocaleString("pt-BR", { minimumFractionDigits: 2 })
   ]);
 
-  const totalGeral = listaItens.reduce((soma, { quantidade, preco }) => soma + quantidade * preco, 0);
+  const totalGeral = listaItens.reduce((acc, { quantidade, preco }) => acc + quantidade * preco, 0);
+
+  doc.setFontSize(18);
+  doc.text("Orçamento", 105, 20, { align: "center" }); // Centralizado
 
   doc.autoTable({
+    startY: 30,
     head: headers,
     body: dados,
-    startY: 30,
-    theme: 'grid',
-    styles: {
-      halign: 'center',
-      valign: 'middle',
-      cellPadding: 3,
-    },
-    headStyles: {
-      fillColor: [41, 128, 185],
-      textColor: 255,
-      fontSize: 12,
-    },
-    bodyStyles: {
-      fontSize: 11,
-    },
-    columnStyles: {
-      0: { cellWidth: 60 },
-      1: { cellWidth: 30 },
-      2: { cellWidth: 40 },
-      3: { cellWidth: 40 },
-    }
   });
 
-  doc.text(`Total Geral: ${formatarBRL(totalGeral)}`, 14, doc.lastAutoTable.finalY + 10);
+  doc.text(`Total Geral: R$ ${totalGeral.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`, 14, doc.lastAutoTable.finalY + 10);
 
-  // Armazena para salvar depois
   ultimoPDF = doc;
 
-  // Gera o blob e mostra no iframe
-  const blob = doc.output("blob");
-  const url = URL.createObjectURL(blob);
-  const frame = document.getElementById("previewFrame");
-  frame.src = `${url}#toolbar=0&navpanes=0&scrollbar=0&zoom=100`;
-  frame.style.display = "block";
+  const blobUrl = doc.output("bloburl");
+  const iframe = document.getElementById("previewFrame");
+  iframe.src = blobUrl;
+  iframe.style.display = "block";
+}
+
+function salvarPDF() {
+  if (ultimoPDF) {
+    ultimoPDF.save("orcamento.pdf");
+  } else {
+    alert("Visualize o PDF antes de salvar.");
+  }
 }
