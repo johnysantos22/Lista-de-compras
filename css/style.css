@@ -99,5 +99,6 @@ th, td {
 
   input, button {
     font-size: 1rem;
+    width: auto;
   }
 }
