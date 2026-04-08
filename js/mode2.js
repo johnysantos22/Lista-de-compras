@@ -1,110 +1,145 @@
-let listaToDo = JSON.parse(localStorage.getItem('todoListTemp')) || [];
+const STORAGE_TODO = 'todoListTemp';
+const STORAGE_HISTORICO = 'historicoGastos';
+
+const todoInput = document.getElementById('todoItem');
+const todoListUL = document.getElementById('todoList');
+const erroItem = document.getElementById('erroItem');
+const tabelaHistoricoBody = document.querySelector('#tabelaHistorico tbody');
+const totalMesSpan = document.getElementById('totalMes');
+const containerBotoesReutilizar = document.getElementById('containerBotoesReutilizar');
+const modal = document.getElementById('modalHistorico');
+const conteudoHistorico = document.getElementById('conteudoHistorico');
+const btnFecharModal = document.getElementById('btnFecharModal');
+const containerBotoes = document.getElementById('containerBotoes');
+
+const btnAdicionar = document.getElementById('btnAdicionar');
+const btnMostrarHistoricoPorMes = document.getElementById('btnMostrarHistoricoPorMes');
+const btnLimparTudo = document.getElementById('btnLimparTudo');
+
 const dataAtual = new Date();
 const mesAnoAtual = dataAtual.toLocaleDateString('pt-BR', {
   month: '2-digit',
   year: 'numeric'
-}).replace('/', '/');
+});
 
 const formatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
-let historico = JSON.parse(localStorage.getItem('historicoGastos')) || {};
+let listaToDo = JSON.parse(localStorage.getItem(STORAGE_TODO)) || [];
+let historico = JSON.parse(localStorage.getItem(STORAGE_HISTORICO)) || {};
+
+btnAdicionar.addEventListener('click', adicionarToDo);
+todoInput.addEventListener('keydown', event => {
+  if (event.key === 'Enter') adicionarToDo();
+});
+btnMostrarHistoricoPorMes.addEventListener('click', mostrarHistoricoPorMes);
+btnLimparTudo.addEventListener('click', () => {
+  if (confirm('Deseja limpar todo o histórico?')) {
+    localStorage.removeItem(STORAGE_HISTORICO);
+    historico = {};
+    carregarHistoricoMes(mesAnoAtual);
+    modal.style.display = 'none';
+  }
+});
+btnFecharModal.addEventListener('click', () => {
+  modal.style.display = 'none';
+});
+modal.addEventListener('click', event => {
+  if (event.target === modal) modal.style.display = 'none';
+});
 
 carregarHistoricoMes(mesAnoAtual);
 carregarListaToDo();
 
-// ---------------------------- Funções Principais ----------------------------
-
 function carregarHistoricoMes(mesAno) {
-  historico = JSON.parse(localStorage.getItem('historicoGastos')) || {};
+  historico = JSON.parse(localStorage.getItem(STORAGE_HISTORICO)) || {};
   limparTabelaDaTela();
+
   if (historico[mesAno]) {
     historico[mesAno].forEach(({ item, quantidade, preco, total }) => {
       inserirNaTabela(item, quantidade, preco, total, mesAno);
     });
   }
+
   atualizarTotalMes(mesAno);
   adicionarBotaoReutilizarTodos(mesAno);
 }
 
 function carregarListaToDo() {
-  listaToDo = JSON.parse(localStorage.getItem('todoListTemp')) || [];
-  const todoListUL = document.getElementById('todoList');
+  listaToDo = JSON.parse(localStorage.getItem(STORAGE_TODO)) || [];
   todoListUL.innerHTML = '';
   listaToDo.forEach(item => renderizarItem(item));
 }
 
 function adicionarToDo() {
-  const valor = document.getElementById('todoItem').value.trim();
-  const erroDiv = document.getElementById('erroItem');
-  erroDiv.innerText = '';
+  const valor = todoInput.value.trim();
+  erroItem.innerText = '';
 
   if (!valor) {
-    erroDiv.innerText = 'O nome do item é obrigatório.';
+    erroItem.innerText = 'O nome do item é obrigatório.';
     return;
   }
 
   if (listaToDo.includes(valor)) {
-    erroDiv.innerText = 'Este item já está na lista.';
+    erroItem.innerText = 'Este item já está na lista.';
     return;
   }
 
   listaToDo.push(valor);
-  localStorage.setItem('todoListTemp', JSON.stringify(listaToDo));
+  salvarListaTemporaria();
   renderizarItem(valor);
-  document.getElementById('todoItem').value = '';
+  todoInput.value = '';
 }
 
 function renderizarItem(valor) {
   const li = document.createElement('li');
-  li.style.marginBottom = '10px';
 
   const nomeSpan = document.createElement('span');
+  nomeSpan.className = 'todo-name';
   nomeSpan.innerText = valor;
-  nomeSpan.style.marginRight = '10px';
 
   const inputQuantidade = document.createElement('input');
   inputQuantidade.type = 'number';
   inputQuantidade.placeholder = 'Qtd';
-  inputQuantidade.style.width = '60px';
+  inputQuantidade.min = '1';
+  inputQuantidade.className = 'todo-input';
 
   const inputPreco = document.createElement('input');
   inputPreco.type = 'number';
   inputPreco.placeholder = 'Preço';
-  inputPreco.style.width = '80px';
+  inputPreco.min = '0.01';
+  inputPreco.step = '0.01';
+  inputPreco.className = 'todo-input';
 
   const botaoSalvar = document.createElement('button');
+  botaoSalvar.className = 'button button-small button-primary';
   botaoSalvar.innerText = 'Salvar';
-  botaoSalvar.style.marginLeft = '8px';
 
   const botaoRemover = document.createElement('button');
+  botaoRemover.className = 'button button-small button-danger';
   botaoRemover.innerText = 'Remover';
-  botaoRemover.style.marginLeft = '8px';
-  botaoRemover.style.backgroundColor = '#d9534f';
-  botaoRemover.style.color = '#fff';
 
-  // 👉 Ação do botão Remover da lista de compras
-  botaoRemover.onclick = () => {
+  const actions = document.createElement('div');
+  actions.className = 'todo-controls';
+  actions.append(botaoSalvar, botaoRemover);
+
+  const erroItemLocal = document.createElement('div');
+  erroItemLocal.className = 'input-error';
+
+  botaoRemover.addEventListener('click', () => {
     if (confirm(`Deseja remover "${valor}" da lista?`)) {
       listaToDo = listaToDo.filter(item => item !== valor);
-      localStorage.setItem('todoListTemp', JSON.stringify(listaToDo));
+      salvarListaTemporaria();
       li.remove();
     }
-  };
+  });
 
-  // 👉 Ação do botão Salvar
-  botaoSalvar.onclick = () => {
-    const erroExistente = li.querySelector('.erroInput');
-    if (erroExistente) erroExistente.remove();
-
-    const quantidade = parseInt(inputQuantidade.value);
-    const preco = parseFloat(inputPreco.value);
+  botaoSalvar.addEventListener('click', () => {
+    erroItemLocal.innerText = '';
+    const quantidade = parseInt(inputQuantidade.value, 10);
+    const preco = parseFloat(inputPreco.value.replace(',', '.'));
 
     if (!quantidade || quantidade <= 0 || !preco || preco <= 0) {
-      const erro = document.createElement('div');
-      erro.innerText = 'Preencha quantidade e preço válidos.';
-      erro.className = 'erroInput';
-      erro.style.color = 'red';
-      erro.style.fontSize = '14px';
-      li.appendChild(erro);
+      erroItemLocal.innerText = 'Informe quantidade e preço válidos.';
+      if (!li.contains(erroItemLocal)) li.appendChild(erroItemLocal);
       return;
     }
 
@@ -114,22 +149,16 @@ function renderizarItem(valor) {
     atualizarTotalMes(mesAnoAtual);
 
     listaToDo = listaToDo.filter(item => item !== valor);
-    localStorage.setItem('todoListTemp', JSON.stringify(listaToDo));
+    salvarListaTemporaria();
     li.remove();
-  };
+  });
 
-  li.appendChild(nomeSpan);
-  li.appendChild(inputQuantidade);
-  li.appendChild(inputPreco);
-  li.appendChild(botaoSalvar);
-  li.appendChild(botaoRemover);
-  document.getElementById('todoList').appendChild(li);
+  li.append(nomeSpan, inputQuantidade, inputPreco, actions);
+  todoListUL.appendChild(li);
 }
 
 function inserirNaTabela(item, quantidade, preco, total, mesAno) {
-  const tabela = document.getElementById('tabelaHistorico');
-  const linha = tabela.insertRow();
-
+  const linha = tabelaHistoricoBody.insertRow();
   linha.insertCell().innerText = item;
   linha.insertCell().innerText = quantidade;
   linha.insertCell().innerText = formatter.format(preco);
@@ -137,85 +166,69 @@ function inserirNaTabela(item, quantidade, preco, total, mesAno) {
   linha.insertCell().innerText = mesAno;
 
   const cellAcoes = linha.insertCell();
+  cellAcoes.className = 'actions-cell';
 
-  // Botão Reutilizar
   const btnReutilizar = document.createElement('button');
+  btnReutilizar.className = 'button button-small button-secondary';
   btnReutilizar.innerText = 'Reutilizar';
-  btnReutilizar.style.marginRight = '6px';
-  btnReutilizar.onclick = () => {
+  btnReutilizar.addEventListener('click', () => {
     if (!listaToDo.includes(item)) {
       listaToDo.push(item);
-      localStorage.setItem('todoListTemp', JSON.stringify(listaToDo));
+      salvarListaTemporaria();
       carregarListaToDo();
       alert(`"${item}" adicionado novamente à lista de compras.`);
     } else {
       alert(`"${item}" já está na lista de compras.`);
     }
-  };
-  cellAcoes.appendChild(btnReutilizar);
+  });
 
-  // Botão Remover do Histórico
   const btnRemover = document.createElement('button');
+  btnRemover.className = 'button button-small button-danger';
   btnRemover.innerText = 'Remover';
-  btnRemover.style.backgroundColor = '#d9534f';
-  btnRemover.style.color = '#fff';
-  btnRemover.onclick = () => {
+  btnRemover.addEventListener('click', () => {
     if (confirm(`Deseja remover "${item}" do histórico?`)) {
       removerDoHistorico(item, quantidade, preco, total, mesAno);
       linha.remove();
       atualizarTotalMes(mesAno);
     }
-  };
-  cellAcoes.appendChild(btnRemover);
+  });
+
+  cellAcoes.append(btnReutilizar, btnRemover);
 }
 
 function removerDoHistorico(item, quantidade, preco, total, mesAno) {
-  historico = JSON.parse(localStorage.getItem('historicoGastos')) || {};
+  historico = JSON.parse(localStorage.getItem(STORAGE_HISTORICO)) || {};
   if (historico[mesAno]) {
-    historico[mesAno] = historico[mesAno].filter(i => {
-      return !(i.item === item && i.quantidade === quantidade && i.preco === preco && i.total === total);
-    });
-
-    if (historico[mesAno].length === 0) {
-      delete historico[mesAno];
-    }
-
-    localStorage.setItem('historicoGastos', JSON.stringify(historico));
+    historico[mesAno] = historico[mesAno].filter(i => !(i.item === item && i.quantidade === quantidade && i.preco === preco && i.total === total));
+    if (historico[mesAno].length === 0) delete historico[mesAno];
+    localStorage.setItem(STORAGE_HISTORICO, JSON.stringify(historico));
   }
 }
 
 function salvarHistorico(item, quantidade, preco, total, mesAno) {
-  historico = JSON.parse(localStorage.getItem('historicoGastos')) || {};
+  historico = JSON.parse(localStorage.getItem(STORAGE_HISTORICO)) || {};
   if (!historico[mesAno]) historico[mesAno] = [];
   historico[mesAno].push({ item, quantidade, preco, total });
-  localStorage.setItem('historicoGastos', JSON.stringify(historico));
+  localStorage.setItem(STORAGE_HISTORICO, JSON.stringify(historico));
 }
 
 function atualizarTotalMes(mesAno) {
-  historico = JSON.parse(localStorage.getItem('historicoGastos')) || {};
-  let total = 0;
-  if (historico[mesAno]) {
-    total = historico[mesAno].reduce((acc, cur) => acc + cur.total, 0);
-  }
-  document.getElementById('totalMes').innerText = formatter.format(total);
+  historico = JSON.parse(localStorage.getItem(STORAGE_HISTORICO)) || {};
+  const total = historico[mesAno] ? historico[mesAno].reduce((acc, cur) => acc + cur.total, 0) : 0;
+  totalMesSpan.innerText = formatter.format(total);
 }
 
 function limparTabelaDaTela() {
-  const tabela = document.getElementById('tabelaHistorico');
-  while (tabela.rows.length > 1) tabela.deleteRow(1);
+  tabelaHistoricoBody.innerHTML = '';
 }
 
-// ------------------------ Reutilizar Todos ------------------------
-
 function reutilizarTodosDoMes(mesAno) {
-  historico = JSON.parse(localStorage.getItem('historicoGastos')) || {};
+  historico = JSON.parse(localStorage.getItem(STORAGE_HISTORICO)) || {};
   if (historico[mesAno]) {
     historico[mesAno].forEach(({ item }) => {
-      if (!listaToDo.includes(item)) {
-        listaToDo.push(item);
-      }
+      if (!listaToDo.includes(item)) listaToDo.push(item);
     });
-    localStorage.setItem('todoListTemp', JSON.stringify(listaToDo));
+    salvarListaTemporaria();
     carregarListaToDo();
     alert('Todos os itens do mês foram adicionados de volta à lista de compras!');
   } else {
@@ -224,42 +237,24 @@ function reutilizarTodosDoMes(mesAno) {
 }
 
 function adicionarBotaoReutilizarTodos(mesAno) {
-  const container = document.getElementById('containerBotoesReutilizar');
-  if (!container) return;
-  container.innerHTML = '';
+  if (!containerBotoesReutilizar) return;
+  containerBotoesReutilizar.innerHTML = '';
+
+  if (!historico[mesAno] || historico[mesAno].length === 0) return;
 
   const btnReutilizarTodos = document.createElement('button');
+  btnReutilizarTodos.className = 'button button-secondary';
   btnReutilizarTodos.innerText = 'Reutilizar Todos';
-  btnReutilizarTodos.style.backgroundColor = '#0275d8';
-  btnReutilizarTodos.style.color = '#fff';
-  btnReutilizarTodos.style.marginTop = '10px';
-  btnReutilizarTodos.style.padding = '6px 12px';
-  btnReutilizarTodos.style.border = 'none';
-  btnReutilizarTodos.style.borderRadius = '4px';
-  btnReutilizarTodos.style.cursor = 'pointer';
+  btnReutilizarTodos.addEventListener('click', () => reutilizarTodosDoMes(mesAno));
 
-  btnReutilizarTodos.onclick = () => {
-    reutilizarTodosDoMes(mesAno);
-  };
-
-  container.appendChild(btnReutilizarTodos);
+  containerBotoesReutilizar.appendChild(btnReutilizarTodos);
 }
 
-// ---------------------------- Modal Histórico ----------------------------
-
-const modal = document.getElementById('modalHistorico');
-const conteudoHistorico = document.getElementById('conteudoHistorico');
-const btnFecharModal = document.getElementById('btnFecharModal');
-const containerBotoes = document.getElementById('containerBotoes');
-
-btnFecharModal.onclick = () => {
-  modal.style.display = 'none';
-};
-
 function mostrarHistoricoPorMes() {
-  historico = JSON.parse(localStorage.getItem('historicoGastos')) || {};
+  historico = JSON.parse(localStorage.getItem(STORAGE_HISTORICO)) || {};
   if (Object.keys(historico).length === 0) {
     conteudoHistorico.innerText = 'Nenhum histórico de gastos encontrado.';
+    containerBotoes.innerHTML = '';
   } else {
     let texto = 'Gastos por mês:\n\n';
     for (const mes in historico) {
@@ -276,34 +271,33 @@ function criarBotoesLimpar() {
   containerBotoes.innerHTML = '';
   for (const mes in historico) {
     const btn = document.createElement('button');
+    btn.className = 'button button-danger button-small';
     btn.innerText = `Limpar ${mes}`;
-    btn.style.backgroundColor = '#d9534f';
-    btn.style.color = '#fff';
-    btn.style.marginRight = '6px';
-    btn.style.marginTop = '10px';
-    btn.onclick = () => {
+    btn.addEventListener('click', () => {
       if (confirm(`Deseja limpar o mês ${mes}?`)) {
         delete historico[mes];
-        localStorage.setItem('historicoGastos', JSON.stringify(historico));
+        localStorage.setItem(STORAGE_HISTORICO, JSON.stringify(historico));
         carregarHistoricoMes(mesAnoAtual);
         modal.style.display = 'none';
       }
-    };
+    });
     containerBotoes.appendChild(btn);
   }
 
-  const btnLimparTudo = document.createElement('button');
-  btnLimparTudo.innerText = 'Limpar Tudo';
-  btnLimparTudo.style.backgroundColor = '#000';
-  btnLimparTudo.style.color = '#fff';
-  btnLimparTudo.style.marginTop = '10px';
-  btnLimparTudo.onclick = () => {
+  const btnLimparTudoModal = document.createElement('button');
+  btnLimparTudoModal.className = 'button button-secondary button-small';
+  btnLimparTudoModal.innerText = 'Limpar Tudo';
+  btnLimparTudoModal.addEventListener('click', () => {
     if (confirm('Deseja limpar todo o histórico?')) {
-      localStorage.removeItem('historicoGastos');
+      localStorage.removeItem(STORAGE_HISTORICO);
       historico = {};
       carregarHistoricoMes(mesAnoAtual);
       modal.style.display = 'none';
     }
-  };
-  containerBotoes.appendChild(btnLimparTudo);
+  });
+  containerBotoes.appendChild(btnLimparTudoModal);
+}
+
+function salvarListaTemporaria() {
+  localStorage.setItem(STORAGE_TODO, JSON.stringify(listaToDo));
 }

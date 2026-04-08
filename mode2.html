@@ -4,47 +4,88 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Lista com Histórico</title>
+  <title>SuperLista - Lista de Compras</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 
 <body>
-    <h2>Lista de Compras</h2>
- <strong>Gasto total do mês: R$ <span id="totalMes">0.00</span></strong>
+  <div class="app-shell">
+    <header class="page-header">
+      <div class="brand-block">
+        <span class="brand-mark">S</span>
+        <div>
+          <p class="eyebrow">SuperLista</p>
+          <h1>Lista de Compras com Histórico</h1>
+        </div>
+      </div>
+      <div class="summary-card">
+        <span>Gasto total do mês</span>
+        <strong id="totalMes">R$ 0,00</strong>
+      </div>
+    </header>
 
-  <input type="text" id="todoItem" placeholder="Novo item">
-  <button onclick="adicionarToDo()">Adicionar à Lista</button>
-  <div id="erroItem" style="color: red; font-size: 14px; margin-top: 5px;"></div>
+    <main class="main-grid">
+      <section class="panel panel-accent">
+        <div class="panel-header">
+          <h2>Nova lista rápida</h2>
+          <p>Adicione itens, informe a quantidade e prepare sua compra.</p>
+        </div>
+        <div class="form-group">
+          <input type="text" id="todoItem" placeholder="Nome do item" />
+          <button id="btnAdicionar" class="button button-primary">Adicionar à lista</button>
+        </div>
+        <div id="erroItem" class="input-error"></div>
 
-  <ul id="todoList"></ul>
+        <div class="panel-list">
+          <h3>Itens pendentes</h3>
+          <ul id="todoList"></ul>
+        </div>
+      </section>
 
-  <table id="tabelaHistorico">
-    <tr>
-      <th>Item</th>
-      <th>Quantidade</th>
-      <th>Preço</th>
-      <th>Total</th>
-      <th>Mês/Ano</th>
-    </tr>
-  </table>
+      <section class="panel panel-white">
+        <div class="panel-header">
+          <h2>Histórico de compras</h2>
+          <p>Reaproveite itens e gerencie seus gastos por mês.</p>
+        </div>
 
-  <div id="containerBotoesReutilizar"></div>
+        <div class="table-wrapper">
+          <table id="tabelaHistorico">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Quantidade</th>
+                <th>Preço</th>
+                <th>Total</th>
+                <th>Mês/Ano</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
 
-  <br><br>
-  <button onclick="mostrarHistoricoPorMes()">Ver gastos por mês</button>
+        <div class="action-row">
+          <button id="btnMostrarHistoricoPorMes" class="button button-secondary">Ver histórico por mês</button>
+          <button id="btnLimparTudo" class="button button-secondary">Limpar histórico</button>
+        </div>
 
-  <!-- Modal -->
-  <div id="modalHistorico" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
-    background: rgba(0,0,0,0.5); justify-content:center; align-items:center; z-index:1000;">
-    <div style="background:#fff; padding:20px; border-radius:8px; max-width:500px; width:90%; box-shadow:0 2px 10px rgba(0,0,0,0.3); position:relative;">
-      <h3>Histórico de Gastos por Mês</h3>
-      <pre id="conteudoHistorico" style="white-space: pre-wrap; max-height:300px; overflow-y:auto;"></pre>
-      <div id="containerBotoes"></div>
-      <button id="btnFecharModal" style="margin-top:15px;">Fechar</button>
+        <div id="containerBotoesReutilizar"></div>
+      </section>
+    </main>
+
+    <footer class="page-footer">
+      <button class="button button-outline" onclick="location.href='index.html'">Voltar ao menu</button>
+    </footer>
+
+    <div id="modalHistorico" class="modal">
+      <div class="modal-content">
+        <button class="close" id="btnFecharModal">×</button>
+        <h3>Histórico de Gastos por Mês</h3>
+        <pre id="conteudoHistorico"></pre>
+        <div id="containerBotoes" class="modal-actions"></div>
+      </div>
     </div>
   </div>
-
-    <button onclick="location.href='index.html'">Voltar ao Menu</button>
 
   <script src="js/mode2.js"></script>
 </body>
