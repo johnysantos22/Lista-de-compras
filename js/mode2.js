@@ -1,30 +1,24 @@
-// js/mode2.js
-
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
 import { getAnalytics } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics.js';
 import {
-  getFirestore,
-  collection,
-  addDoc,
-  getDocs,
-  getDocsFromServer,
-  query,
-  where,
-  deleteDoc,
-  doc,
-  serverTimestamp
+  getFirestore, collection, addDoc, getDocs, getDocsFromServer, query, where, deleteDoc, doc, serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+import {
+  getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged
+} from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js';
 
-// Importa a configuração do arquivo separado
 import { firebaseConfig } from './firebase-config.js';
 
 const appFirebase = initializeApp(firebaseConfig);
 const analytics = getAnalytics(appFirebase);
 const db = getFirestore(appFirebase);
+const auth = getAuth(appFirebase);
+const provider = new GoogleAuthProvider();
+
+let currentUser = null;
 
 const entradaItem = document.getElementById('itemCompra');
 const listaPendentesUL = document.getElementById('listaPendentes');
-
 const erroLista = document.getElementById('erroLista');
 const tabelaHistoricoBody = document.querySelector('#tabelaHistorico tbody');
 const totalMesSpan = document.getElementById('totalMes');
@@ -38,22 +32,62 @@ const btnAdicionar = document.getElementById('btnAdicionar');
 const btnMostrarHistoricoPorMes = document.getElementById('btnMostrarHistoricoPorMes');
 const btnLimparTudo = document.getElementById('btnLimparTudo');
 
-const dataAtual = new Date();
-const mesAnoAtual = dataAtual.toLocaleDateString('pt-BR', {
-  month: '2-digit',
-  year: 'numeric'
-});
+const btnLogin = document.getElementById('btnLogin');
+const btnLogout = document.getElementById('btnLogout');
+const nomeUsuario = document.getElementById('nome-usuario');
+const telaLoginAviso = document.getElementById('tela-login-aviso');
+const conteudoApp = document.getElementById('conteudo-app');
 
+const dataAtual = new Date();
+const mesAnoAtual = dataAtual.toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' });
 const formatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+
 let listaCompras = [];
 let historico = {};
 let firestoreDisponivel = true;
 
+// ==========================================
+// SISTEMA DE AUTENTICAÇÃO
+// ==========================================
+
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    currentUser = user;
+    nomeUsuario.innerText = `Olá, ${user.displayName.split(' ')[0]}`;
+    btnLogin.style.display = 'none';
+    btnLogout.style.display = 'inline-block';
+
+    // Oculta o aviso e mostra o aplicativo
+    telaLoginAviso.style.display = 'none';
+    conteudoApp.style.display = '';
+    iniciarApp();
+  } else {
+    // DESLOGADO
+    currentUser = null;
+    nomeUsuario.innerText = '';
+    btnLogin.style.display = 'inline-block';
+    btnLogout.style.display = 'none';
+
+    // Oculta o app e mostra o aviso para logar
+    telaLoginAviso.style.display = 'block';
+    conteudoApp.style.display = 'none';
+
+    listaPendentesUL.innerHTML = '';
+    tabelaHistoricoBody.innerHTML = '';
+    historico = {};
+  }
+});
+
+btnLogin.addEventListener('click', () => signInWithPopup(auth, provider));
+btnLogout.addEventListener('click', () => signOut(auth));
+
+// ==========================================
+// LÓGICA DO APLICATIVO E BANCO DE DADOS
+// ==========================================
+
 function marcarFirebaseIndisponivel() {
   firestoreDisponivel = false;
-  if (erroLista) {
-    erroLista.innerText = 'Conexão com Firebase indisponível. Verifique a configuração do Firestore e atualize a página.';
-  }
+  if (erroLista) erroLista.innerText = 'Conexão com Firebase indisponível.';
   btnAdicionar.disabled = true;
   btnMostrarHistoricoPorMes.disabled = true;
   btnLimparTudo.disabled = true;
@@ -61,15 +95,12 @@ function marcarFirebaseIndisponivel() {
 
 function tratarErroFirebase(error, mensagemUsuario) {
   console.error('Firebase error:', error);
-  const detalhes = error?.code ? ` (${error.code})` : '';
-  alert(`${mensagemUsuario}\n\nDetalhe: ${error?.message || 'erro desconhecido.'}${detalhes}`);
+  alert(`${mensagemUsuario}\n\nDetalhe: ${error?.message || 'erro desconhecido.'}`);
   marcarFirebaseIndisponivel();
 }
 
 btnAdicionar.addEventListener('click', adicionarItem);
-entradaItem.addEventListener('keydown', event => {
-  if (event.key === 'Enter') adicionarItem();
-});
+entradaItem.addEventListener('keydown', event => { if (event.key === 'Enter') adicionarItem(); });
 btnMostrarHistoricoPorMes.addEventListener('click', mostrarHistoricoPorMes);
 btnLimparTudo.addEventListener('click', async () => {
   if (confirm('Deseja limpar todo o histórico?')) {
@@ -79,64 +110,52 @@ btnLimparTudo.addEventListener('click', async () => {
     janelaHistorico.style.display = 'none';
   }
 });
-btnFecharModal.addEventListener('click', () => {
-  janelaHistorico.style.display = 'none';
-});
-janelaHistorico.addEventListener('click', event => {
-  if (event.target === janelaHistorico) janelaHistorico.style.display = 'none';
-});
-
-iniciarApp();
+btnFecharModal.addEventListener('click', () => { janelaHistorico.style.display = 'none'; });
+janelaHistorico.addEventListener('click', event => { if (event.target === janelaHistorico) janelaHistorico.style.display = 'none'; });
 
 async function iniciarApp() {
   await verificarConexaoFirebase();
   if (!firestoreDisponivel) return;
-
   await carregarHistoricoMes(mesAnoAtual);
   await carregarListaCompras();
 }
 
 async function verificarConexaoFirebase() {
   try {
-    const comprasQuery = query(collection(db, 'compras'), where('mesAno', '==', mesAnoAtual));
+    const comprasQuery = query(collection(db, 'compras'), where('mesAno', '==', mesAnoAtual), where('userId', '==', currentUser.uid));
     await getDocsFromServer(comprasQuery);
     firestoreDisponivel = true;
   } catch (error) {
-    tratarErroFirebase(error, 'Não foi possível conectar ao Firestore. Verifique o projeto e ative a API do Cloud Firestore.');
+    tratarErroFirebase(error, 'Não foi possível conectar ao Firestore.');
   }
 }
 
 async function carregarHistoricoMes(mesAno) {
   historico = {};
   limparTabelaDaTela();
-
   try {
-    const comprasQuery = query(collection(db, 'compras'), where('mesAno', '==', mesAno));
+    const comprasQuery = query(collection(db, 'compras'), where('mesAno', '==', mesAno), where('userId', '==', currentUser.uid));
     const querySnapshot = await getDocs(comprasQuery);
-
     querySnapshot.forEach(docSnap => {
       const data = docSnap.data();
       if (!historico[mesAno]) historico[mesAno] = [];
       historico[mesAno].push({ id: docSnap.id, ...data });
       inserirNaTabela(data.item, data.quantidade, data.preco, data.total, mesAno, docSnap.id);
     });
-  } catch (error) {
-    tratarErroFirebase(error, 'Não foi possível carregar o histórico do Firebase. Verifique o Firestore e tente novamente.');
-  }
-
+  } catch (error) { tratarErroFirebase(error, 'Não foi carregar o histórico.'); }
   atualizarTotalMes(mesAno);
   adicionarBotaoReutilizarTodos(mesAno);
 }
 
 async function carregarListaCompras() {
   try {
-    const snapshot = await getDocs(collection(db, 'listaPendentes'));
+    const pendentesQuery = query(collection(db, 'listaPendentes'), where('userId', '==', currentUser.uid));
+    const snapshot = await getDocs(pendentesQuery);
     listaCompras = snapshot.docs.map(docSnap => ({ id: docSnap.id, item: docSnap.data().item }));
   } catch (error) {
-    tratarErroFirebase(error, 'Não foi possível carregar a lista de compras do Firebase. Verifique o Firestore e tente novamente.');
+    tratarErroFirebase(error, 'Não foi possível carregar a lista.');
     listaCompras = [];
   }
-
   listaPendentesUL.innerHTML = '';
   listaCompras.forEach(itemObj => renderizarItem(itemObj));
 }
@@ -144,23 +163,9 @@ async function carregarListaCompras() {
 async function adicionarItem() {
   const valor = entradaItem.value.trim();
   erroLista.innerText = '';
-
-  if (!firestoreDisponivel) {
-    const mensagem = 'Firebase indisponível. Os dados não podem ser salvos agora.';
-    erroLista.innerText = mensagem;
-    alert(mensagem);
-    return;
-  }
-
-  if (!valor) {
-    erroLista.innerText = 'O nome do item é obrigatório.';
-    return;
-  }
-
-  if (listaCompras.some(itemObj => itemObj.item === valor)) {
-    erroLista.innerText = 'Este item já está na lista.';
-    return;
-  }
+  if (!firestoreDisponivel) { alert('Firebase indisponível.'); return; }
+  if (!valor) { erroLista.innerText = 'O nome do item é obrigatório.'; return; }
+  if (listaCompras.some(itemObj => itemObj.item === valor)) { erroLista.innerText = 'Este item já está na lista.'; return; }
 
   const docRef = await salvarListaPendenteFirebase(valor);
   if (!docRef) return;
@@ -173,7 +178,6 @@ async function adicionarItem() {
 
 function renderizarItem({ id, item }) {
   const li = document.createElement('li');
-
   const nomeSpan = document.createElement('span');
   nomeSpan.className = 'nome-item';
   nomeSpan.innerText = item;
@@ -215,18 +219,12 @@ function renderizarItem({ id, item }) {
   });
 
   botaoSalvar.addEventListener('click', async () => {
-    if (!firestoreDisponivel) {
-      erroListaLocal.innerText = 'Firebase indisponível. Os dados não podem ser salvos agora.';
-      if (!li.contains(erroListaLocal)) li.appendChild(erroListaLocal);
-      return;
-    }
-
+    if (!firestoreDisponivel) return;
     erroListaLocal.innerText = '';
     const quantidade = parseInt(inputQuantidade.value, 10);
     const preco = parseFloat(inputPreco.value.replace(',', '.'));
 
     if (!quantidade || quantidade <= 0 || !preco || preco <= 0) {
-      erroListaLocal.className = 'erro-input';
       erroListaLocal.innerText = 'Informe quantidade e preço válidos.';
       if (!li.contains(erroListaLocal)) li.appendChild(erroListaLocal);
       return;
@@ -248,41 +246,28 @@ function renderizarItem({ id, item }) {
 
 function inserirNaTabela(item, quantidade, preco, total, mesAno, docId = null) {
   const linha = tabelaHistoricoBody.insertRow();
-  const itemCell = linha.insertCell();
-  itemCell.dataset.label = 'Item';
-  itemCell.innerText = item;
 
-  const quantidadeCell = linha.insertCell();
-  quantidadeCell.dataset.label = 'Quantidade';
-  quantidadeCell.innerText = quantidade;
+  const itemCell = linha.insertCell(); itemCell.dataset.label = 'Item'; itemCell.innerText = item;
+  const quantidadeCell = linha.insertCell(); quantidadeCell.dataset.label = 'Quantidade'; quantidadeCell.innerText = quantidade;
+  const precoCell = linha.insertCell(); precoCell.dataset.label = 'Preço'; precoCell.innerText = formatter.format(preco);
+  const totalCell = linha.insertCell(); totalCell.dataset.label = 'Total'; totalCell.innerText = formatter.format(total);
+  const mesAnoCell = linha.insertCell(); mesAnoCell.dataset.label = 'Mês/Ano'; mesAnoCell.innerText = mesAno;
 
-  const precoCell = linha.insertCell();
-  precoCell.dataset.label = 'Preço';
-  precoCell.innerText = formatter.format(preco);
-
-  const totalCell = linha.insertCell();
-  totalCell.dataset.label = 'Total';
-  totalCell.innerText = formatter.format(total);
-
-  const mesAnoCell = linha.insertCell();
-  mesAnoCell.dataset.label = 'Mês/Ano';
-  mesAnoCell.innerText = mesAno;
-
-  const cellAcoes = linha.insertCell();
-  cellAcoes.dataset.label = 'Ações';
-  cellAcoes.className = 'celula-acoes';
+  const cellAcoes = linha.insertCell(); cellAcoes.dataset.label = 'Ações'; cellAcoes.className = 'celula-acoes';
 
   const btnReutilizar = document.createElement('button');
   btnReutilizar.className = 'botao botao-pequeno botao-secundario';
   btnReutilizar.innerText = 'Reutilizar';
-  btnReutilizar.addEventListener('click', () => {
-    if (!listaCompras.includes(item)) {
-      listaCompras.push(item);
-      salvarListaTemporaria();
-      carregarListaCompras();
-      alert(`"${item}" adicionado novamente à lista de compras.`);
+  btnReutilizar.addEventListener('click', async () => {
+    if (!listaCompras.some(obj => obj.item === item)) {
+      const docRef = await salvarListaPendenteFirebase(item);
+      if (docRef) {
+        listaCompras.push({ id: docRef.id, item: item });
+        carregarListaCompras();
+        alert(`"${item}" adicionado novamente à lista.`);
+      }
     } else {
-      alert(`"${item}" já está na lista de compras.`);
+      alert(`"${item}" já está na lista.`);
     }
   });
 
@@ -318,91 +303,69 @@ function atualizarTotalMes(mesAno) {
 async function salvarHistoricoFirebase(item, quantidade, preco, total, mesAno) {
   try {
     const docRef = await addDoc(collection(db, 'compras'), {
-      item,
-      quantidade,
-      preco,
-      total,
-      mesAno,
+      item, quantidade, preco, total, mesAno,
+      userId: currentUser.uid,
       criadoEm: serverTimestamp()
     });
     return docRef.id;
   } catch (error) {
-    tratarErroFirebase(error, 'Não foi possível salvar o histórico no Firebase. Verifique o Firestore e tente novamente.');
+    tratarErroFirebase(error, 'Não foi possível salvar o histórico.');
     return null;
   }
 }
 
 async function removerHistoricoFirebase(docId) {
-  try {
-    await deleteDoc(doc(db, 'compras', docId));
-  } catch (error) {
-    tratarErroFirebase(error, 'Não foi possível remover o histórico do Firebase.');
-  }
+  try { await deleteDoc(doc(db, 'compras', docId)); }
+  catch (error) { tratarErroFirebase(error, 'Erro ao remover.'); }
 }
 
 async function limparHistoricoFirebaseMes(mesAno) {
   try {
-    const comprasQuery = query(collection(db, 'compras'), where('mesAno', '==', mesAno));
+    const comprasQuery = query(collection(db, 'compras'), where('mesAno', '==', mesAno), where('userId', '==', currentUser.uid));
     const snapshot = await getDocs(comprasQuery);
-    for (const docSnap of snapshot.docs) {
-      await deleteDoc(doc(db, 'compras', docSnap.id));
-    }
-  } catch (error) {
-    tratarErroFirebase(error, 'Não foi possível limpar o histórico deste mês no Firebase.');
-  }
+    for (const docSnap of snapshot.docs) await deleteDoc(doc(db, 'compras', docSnap.id));
+  } catch (error) { tratarErroFirebase(error, 'Erro ao limpar.'); }
 }
 
 async function limparHistoricoFirebaseTudo() {
   try {
-    const snapshot = await getDocs(collection(db, 'compras'));
-    for (const docSnap of snapshot.docs) {
-      await deleteDoc(doc(db, 'compras', docSnap.id));
-    }
-  } catch (error) {
-    tratarErroFirebase(error, 'Não foi possível limpar todo o histórico no Firebase.');
-  }
+    const snapshot = await getDocs(query(collection(db, 'compras'), where('userId', '==', currentUser.uid)));
+    for (const docSnap of snapshot.docs) await deleteDoc(doc(db, 'compras', docSnap.id));
+  } catch (error) { tratarErroFirebase(error, 'Erro ao limpar tudo.'); }
 }
 
-function limparTabelaDaTela() {
-  tabelaHistoricoBody.innerHTML = '';
-}
+function limparTabelaDaTela() { tabelaHistoricoBody.innerHTML = ''; }
 
 async function reutilizarTodosDoMes(mesAno) {
   if (historico[mesAno] && historico[mesAno].length > 0) {
     for (const { item } of historico[mesAno]) {
       if (!listaCompras.some(itemObj => itemObj.item === item)) {
         const docRef = await salvarListaPendenteFirebase(item);
-        if (docRef) {
-          listaCompras.push({ id: docRef.id, item });
-        }
+        if (docRef) listaCompras.push({ id: docRef.id, item });
       }
     }
     await carregarListaCompras();
-    alert('Todos os itens do mês foram adicionados de volta à lista de compras!');
-  } else {
-    alert('Nenhum item encontrado para este mês.');
+    alert('Itens adicionados de volta à lista!');
   }
 }
 
 function adicionarBotaoReutilizarTodos(mesAno) {
   if (!containerBotoesReutilizar) return;
   containerBotoesReutilizar.innerHTML = '';
-
   if (!historico[mesAno] || historico[mesAno].length === 0) return;
 
-  const btnReutilizarTodos = document.createElement('button');
-  btnReutilizarTodos.className = 'botao botao-secundario';
-  btnReutilizarTodos.innerText = 'Reutilizar Todos';
-  btnReutilizarTodos.addEventListener('click', () => reutilizarTodosDoMes(mesAno));
-
-  containerBotoesReutilizar.appendChild(btnReutilizarTodos);
+  const btn = document.createElement('button');
+  btn.className = 'botao botao-secundario';
+  btn.innerText = 'Reutilizar Todos';
+  btn.addEventListener('click', () => reutilizarTodosDoMes(mesAno));
+  containerBotoesReutilizar.appendChild(btn);
 }
 
 async function mostrarHistoricoPorMes() {
   try {
-    const snapshot = await getDocs(collection(db, 'compras'));
+    const snapshot = await getDocs(query(collection(db, 'compras'), where('userId', '==', currentUser.uid)));
     if (snapshot.empty) {
-      conteudoHistorico.innerText = 'Nenhum histórico de gastos encontrado.';
+      conteudoHistorico.innerText = 'Nenhum histórico encontrado.';
       containerBotoes.innerHTML = '';
     } else {
       const totaisPorMes = {};
@@ -410,20 +373,16 @@ async function mostrarHistoricoPorMes() {
         const data = docSnap.data();
         totaisPorMes[data.mesAno] = (totaisPorMes[data.mesAno] || 0) + data.total;
       });
-
       let texto = 'Gastos por mês:\n\n';
-      for (const mes in totaisPorMes) {
-        texto += `${mes}: ${formatter.format(totaisPorMes[mes])}\n`;
-      }
+      for (const mes in totaisPorMes) texto += `${mes}: ${formatter.format(totaisPorMes[mes])}\n`;
       conteudoHistorico.innerText = texto;
       criarBotoesLimpar(totaisPorMes);
     }
   } catch (error) {
-    tratarErroFirebase(error, 'Não foi possível buscar o histórico do Firebase. Verifique o Firestore e tente novamente.');
-    conteudoHistorico.innerText = 'Não foi possível carregar o histórico.';
+    tratarErroFirebase(error, 'Erro ao buscar o histórico.');
+    conteudoHistorico.innerText = 'Erro ao carregar.';
     containerBotoes.innerHTML = '';
   }
-
   janelaHistorico.style.display = 'flex';
 }
 
@@ -442,38 +401,22 @@ function criarBotoesLimpar(totaisPorMes = {}) {
     });
     containerBotoes.appendChild(btn);
   }
-
-  const btnLimparTudoModal = document.createElement('button');
-  btnLimparTudoModal.className = 'botao botao-secundario botao-pequeno';
-  btnLimparTudoModal.innerText = 'Limpar Tudo';
-  btnLimparTudoModal.addEventListener('click', async () => {
-    if (confirm('Deseja limpar todo o histórico?')) {
-      await limparHistoricoFirebaseTudo();
-      historico = {};
-      await carregarHistoricoMes(mesAnoAtual);
-      janelaHistorico.style.display = 'none';
-    }
-  });
-  containerBotoes.appendChild(btnLimparTudoModal);
 }
 
 async function salvarListaPendenteFirebase(item) {
   try {
-    const docRef = await addDoc(collection(db, 'listaPendentes'), {
+    return await addDoc(collection(db, 'listaPendentes'), {
       item,
+      userId: currentUser.uid,
       criadoEm: serverTimestamp()
     });
-    return docRef;
   } catch (error) {
-    tratarErroFirebase(error, 'Não foi possível salvar o item pendente no Firebase. Verifique o Firestore e tente novamente.');
+    tratarErroFirebase(error, 'Erro ao salvar o item.');
     return null;
   }
 }
 
 async function removerListaPendenteFirebase(docId) {
-  try {
-    await deleteDoc(doc(db, 'listaPendentes', docId));
-  } catch (error) {
-    tratarErroFirebase(error, 'Não foi possível remover o item pendente no Firebase.');
-  }
+  try { await deleteDoc(doc(db, 'listaPendentes', docId)); }
+  catch (error) { tratarErroFirebase(error, 'Erro ao remover.'); }
 }

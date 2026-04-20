@@ -18,13 +18,27 @@
             <h1>Lista de Compras com Histórico</h1>
           </div>
         </div>
-        <div class="resumo-mes">
-          <span>Gasto total do mês</span>
-          <strong id="totalMes">R$ 0,00</strong>
+
+        <div id="auth-area" style="text-align: right; display: flex; align-items: center; gap: 10px;">
+          <span id="nome-usuario" style="font-weight: bold; color: #333;"></span>
+          <button id="btnLogin" class="botao botao-primario">Entrar com Google</button>
+          <button id="btnLogout" class="botao botao-perigo" style="display: none;">Sair</button>
         </div>
       </header>
 
-      <main class="grade-principal">
+      <div id="tela-login-aviso" class="painel" style="text-align: center; margin: 40px auto; max-width: 500px;">
+        <h2>Bem-vindo ao SuperLista!</h2>
+        <p style="margin-top: 15px;">Faça login com sua conta Google para criar sua lista privada e salvar seu histórico
+          de compras para sempre, 100% grátis.</p>
+      </div>
+
+      <main class="grade-principal" id="conteudo-app" style="display: none;">
+
+        <div class="resumo-mes" style="grid-column: 1 / -1; margin-bottom: 20px;">
+          <span>Gasto total do mês</span>
+          <strong id="totalMes">R$ 0,00</strong>
+        </div>
+
         <section class="painel painel-destacado">
           <div class="cabecalho-painel">
             <h2>Nova lista rápida</h2>
