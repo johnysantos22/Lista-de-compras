@@ -1,93 +1,93 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SuperLista - Lista de Compras</title>
-  <link rel="stylesheet" href="css/style.css">
-</head>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SuperLista - Lista de Compras</title>
+    <link rel="stylesheet" href="css/style.css">
+  </head>
 
-<body>
-  <div class="app-shell">
-    <header class="page-header">
-      <div class="brand-block">
-        <span class="brand-mark">S</span>
-        <div>
-          <p class="eyebrow">SuperLista</p>
-          <h1>Lista de Compras com Histórico</h1>
+  <body>
+    <div class="aplicacao">
+      <header class="cabecalho-pagina">
+        <div class="bloco-marca">
+          <span class="marca-logo">S</span>
+          <div>
+            <p class="subtitulo">SuperLista</p>
+            <h1>Lista de Compras com Histórico</h1>
+          </div>
         </div>
-      </div>
-      <div class="summary-card">
-        <span>Gasto total do mês</span>
-        <strong id="totalMes">R$ 0,00</strong>
-      </div>
-    </header>
-
-    <main class="main-grid">
-      <section class="panel panel-accent">
-        <div class="panel-header">
-          <h2>Nova lista rápida</h2>
-          <p>Adicione itens, informe a quantidade e prepare sua compra.</p>
+        <div class="resumo-mes">
+          <span>Gasto total do mês</span>
+          <strong id="totalMes">R$ 0,00</strong>
         </div>
-        <div class="form-group">
-          <input type="text" id="todoItem" placeholder="Nome do item" />
-          <button id="btnAdicionar" class="button button-primary">Adicionar à lista</button>
+      </header>
+
+      <main class="grade-principal">
+        <section class="painel painel-destacado">
+          <div class="cabecalho-painel">
+            <h2>Nova lista rápida</h2>
+            <p>Adicione itens, informe a quantidade e prepare sua compra.</p>
+          </div>
+          <div class="grupo-formulario">
+            <input type="text" id="itemCompra" placeholder="Nome do item" />
+            <button id="btnAdicionar" class="botao botao-primario">Adicionar à lista</button>
+          </div>
+          <div id="erroLista" class="erro-input"></div>
+
+          <div class="lista-painel">
+            <h3>Itens pendentes</h3>
+            <ul id="listaPendentes"></ul>
+          </div>
+        </section>
+
+        <section class="painel painel-claro">
+          <div class="cabecalho-painel">
+            <h2>Histórico de compras</h2>
+            <p>Reaproveite itens e gerencie seus gastos por mês.</p>
+          </div>
+
+          <div class="envoltura-tabela">
+            <table id="tabelaHistorico">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Quantidade</th>
+                  <th>Preço</th>
+                  <th>Total</th>
+                  <th>Mês/Ano</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <div class="linha-acoes">
+            <button id="btnMostrarHistoricoPorMes" class="botao botao-secundario">Ver histórico por mês</button>
+            <button id="btnLimparTudo" class="botao botao-secundario">Limpar histórico</button>
+          </div>
+
+          <div id="containerBotoesReutilizar"></div>
+        </section>
+      </main>
+
+      <footer class="rodape-pagina">
+        <button class="botao botao-contorno" onclick="location.href='index.html'">Voltar ao menu</button>
+      </footer>
+
+      <div id="janelaHistorico" class="janela-modal">
+        <div class="conteudo-modal">
+          <button class="fechar-modal" id="btnFecharModal">×</button>
+          <h3>Histórico de Gastos por Mês</h3>
+          <pre id="conteudoHistorico"></pre>
+          <div id="containerBotoes" class="acoes-modal"></div>
         </div>
-        <div id="erroItem" class="input-error"></div>
-
-        <div class="panel-list">
-          <h3>Itens pendentes</h3>
-          <ul id="todoList"></ul>
-        </div>
-      </section>
-
-      <section class="panel panel-white">
-        <div class="panel-header">
-          <h2>Histórico de compras</h2>
-          <p>Reaproveite itens e gerencie seus gastos por mês.</p>
-        </div>
-
-        <div class="table-wrapper">
-          <table id="tabelaHistorico">
-            <thead>
-              <tr>
-                <th>Item</th>
-                <th>Quantidade</th>
-                <th>Preço</th>
-                <th>Total</th>
-                <th>Mês/Ano</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-
-        <div class="action-row">
-          <button id="btnMostrarHistoricoPorMes" class="button button-secondary">Ver histórico por mês</button>
-          <button id="btnLimparTudo" class="button button-secondary">Limpar histórico</button>
-        </div>
-
-        <div id="containerBotoesReutilizar"></div>
-      </section>
-    </main>
-
-    <footer class="page-footer">
-      <button class="button button-outline" onclick="location.href='index.html'">Voltar ao menu</button>
-    </footer>
-
-    <div id="modalHistorico" class="modal">
-      <div class="modal-content">
-        <button class="close" id="btnFecharModal">×</button>
-        <h3>Histórico de Gastos por Mês</h3>
-        <pre id="conteudoHistorico"></pre>
-        <div id="containerBotoes" class="modal-actions"></div>
       </div>
     </div>
-  </div>
 
-  <script src="js/mode2.js"></script>
-</body>
+    <script type="module" src="js/mode2.js"></script>
+  </body>
 
 </html>

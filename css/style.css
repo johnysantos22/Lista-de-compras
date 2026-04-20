@@ -44,28 +44,28 @@ button:focus-visible {
   outline-offset: 2px;
 }
 
-.app-shell {
+.aplicacao {
   max-width: 1180px;
   margin: 0 auto;
   padding: 24px;
 }
 
-.home-shell {
+.pagina-inicial {
   min-height: 100vh;
   display: grid;
   place-items: center;
 }
 
-.hero-card,
-.page-header,
-.panel {
+.cartao-hero,
+.cabecalho-pagina,
+.painel {
   background: rgba(255, 255, 255, 0.92);
   border: 1px solid rgba(15, 23, 42, 0.08);
   box-shadow: 0 24px 50px rgba(15, 23, 42, 0.08);
   border-radius: 24px;
 }
 
-.hero-card {
+.cartao-hero {
   width: 100%;
   padding: 36px 32px;
   display: flex;
@@ -73,14 +73,14 @@ button:focus-visible {
   gap: 24px;
 }
 
-.hero-title,
-.brand-block {
+.titulo-hero,
+.bloco-marca {
   display: flex;
   gap: 18px;
   align-items: center;
 }
 
-.brand-mark {
+.marca-logo {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -93,23 +93,23 @@ button:focus-visible {
   font-weight: 700;
 }
 
-.hero-title h1,
-.brand-block h1 {
+.titulo-hero h1,
+.bloco-marca h1 {
   font-size: clamp(2rem, 2.5vw, 3rem);
   margin: 0;
 }
 
-.hero-card p,
-.panel-header p,
-.summary-card span,
-.eyebrow {
+.cartao-hero p,
+.cabecalho-painel p,
+.resumo-mes span,
+.subtitulo {
   color: #4b5563;
   margin: 0;
 }
 
-.hero-actions,
-.action-row,
-.page-footer {
+.acoes-hero,
+.linha-acoes,
+.rodape-pagina {
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
@@ -117,7 +117,7 @@ button:focus-visible {
   align-items: center;
 }
 
-.button {
+.botao {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -129,62 +129,62 @@ button:focus-visible {
   text-decoration: none;
 }
 
-.button:hover {
+.botao:hover {
   background: #1d4ed8;
 }
 
-.button-primary {
+.botao-primario {
   background: #2563eb;
 }
 
-.button-secondary {
+.botao-secundario {
   background: #0f172a;
   color: #ffffff;
 }
 
-.button-outline {
+.botao-contorno {
   background: transparent;
   color: #1f2937;
   border: 1px solid rgba(31, 41, 55, 0.15);
 }
 
-.button-danger,
-.button-danger:hover {
+.botao-perigo,
+.botao-perigo:hover {
   background: #dc2626;
   color: #ffffff;
 }
 
-.button-small {
+.botao-pequeno {
   padding: 10px 14px;
   min-height: 38px;
   font-size: 0.95rem;
 }
 
-.features-grid,
-.main-grid {
+.grade-recursos,
+.grade-principal {
   display: grid;
   gap: 24px;
 }
 
-.features-grid {
+.grade-recursos {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   margin-top: 24px;
 }
 
-.feature-card {
+.cartao-recurso {
   padding: 24px;
   background: #ffffff;
   border-radius: 24px;
   box-shadow: 0 22px 40px rgba(15, 23, 42, 0.06);
 }
 
-.feature-card h2 {
+.cartao-recurso h2 {
   margin-top: 0;
   margin-bottom: 12px;
   font-size: 1.25rem;
 }
 
-.page-header {
+.cabecalho-pagina {
   width: 100%;
   padding: 28px 32px;
   display: flex;
@@ -195,7 +195,7 @@ button:focus-visible {
   margin-bottom: 24px;
 }
 
-.summary-card {
+.resumo-mes {
   min-width: 220px;
   padding: 22px 24px;
   border-radius: 20px;
@@ -204,13 +204,13 @@ button:focus-visible {
   text-align: left;
 }
 
-.summary-card strong {
+.resumo-mes strong {
   display: block;
   margin-top: 10px;
   font-size: 2rem;
 }
 
-.eyebrow {
+.subtitulo {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-size: 0.8rem;
@@ -218,31 +218,31 @@ button:focus-visible {
   font-weight: 700;
 }
 
-.main-grid {
+.grade-principal {
   grid-template-columns: minmax(320px, 1fr) minmax(420px, 1.4fr);
   align-items: start;
 }
 
-.panel {
+.painel {
   padding: 28px 28px 24px;
 }
 
-.panel-accent {
+.painel-destacado {
   background: radial-gradient(circle at top left, rgba(37, 99, 235, 0.12), transparent 45%);
 }
 
-.panel-header h2 {
+.cabecalho-painel h2 {
   margin: 0 0 12px;
   font-size: 1.5rem;
 }
 
-.form-group {
+.grupo-formulario {
   display: grid;
   gap: 16px;
   margin-top: 24px;
 }
 
-.form-group input {
+.grupo-formulario input {
   width: 100%;
   padding: 16px 18px;
   border: 1px solid #cbd5e1;
@@ -250,29 +250,29 @@ button:focus-visible {
   background: #ffffff;
 }
 
-.form-group input:focus {
+.grupo-formulario input:focus {
   outline: none;
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
-.input-error {
+.erro-input {
   min-height: 22px;
   color: #b91c1c;
   font-size: 0.95rem;
-  margin-top: -8px;
+  margin-top: 1px;
 }
 
-.panel-list {
+.lista-painel {
   margin-top: 28px;
 }
 
-.panel-list h3 {
+.lista-painel h3 {
   margin-bottom: 16px;
   font-size: 1.1rem;
 }
 
-#todoList {
+#listaPendentes {
   list-style: none;
   padding: 0;
   margin: 0;
@@ -280,7 +280,7 @@ button:focus-visible {
   gap: 14px;
 }
 
-#todoList li {
+#listaPendentes li {
   display: grid;
   grid-template-columns: minmax(160px, 1fr) auto;
   gap: 12px;
@@ -291,13 +291,13 @@ button:focus-visible {
   background: #ffffff;
 }
 
-.todo-name {
+.nome-item {
   font-weight: 600;
   color: #111827;
   word-break: break-word;
 }
 
-.todo-input {
+.entrada-item {
   width: 120px;
   max-width: 120px;
   min-width: 80px;
@@ -307,29 +307,29 @@ button:focus-visible {
   background: #fff;
 }
 
-.todo-controls {
+.controles-item {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
   justify-content: flex-end;
 }
 
-.todo-controls button {
+.controles-item button {
   min-width: 100px;
 }
 
-.table-wrapper {
+.envoltura-tabela {
   overflow-x: auto;
   margin-top: 20px;
 }
 
 table {
   width: 100%;
-  min-width: 680px;
   border-collapse: collapse;
   background: #ffffff;
   border-radius: 18px;
   overflow: hidden;
+  table-layout: fixedxed;
 }
 
 th,
@@ -349,27 +349,27 @@ tbody tr:hover {
   background: rgba(37, 99, 235, 0.04);
 }
 
-.text-center {
+.texto-centralizado {
   text-align: center;
 }
 
-.actions-cell {
+.celula-acoes {
   min-width: 170px;
 }
 
-.action-row {
+.linha-acoes {
   display: flex;
   gap: 14px;
   flex-wrap: wrap;
   margin-top: 20px;
 }
 
-.page-footer {
+.rodape-pagina {
   margin-top: 28px;
   justify-content: flex-start;
 }
 
-.modal {
+.janela-modal {
   display: none;
   position: fixed;
   inset: 0;
@@ -380,7 +380,7 @@ tbody tr:hover {
   padding: 24px;
 }
 
-.modal-content {
+.conteudo-modal {
   position: relative;
   width: 100%;
   max-width: 540px;
@@ -390,11 +390,11 @@ tbody tr:hover {
   box-shadow: 0 22px 50px rgba(15, 23, 42, 0.16);
 }
 
-.modal h3 {
+.janela-modal h3 {
   margin-top: 0;
 }
 
-.modal pre {
+.janela-modal pre {
   margin: 18px 0 0;
   padding: 18px;
   border-radius: 16px;
@@ -405,14 +405,14 @@ tbody tr:hover {
   overflow-y: auto;
 }
 
-.modal-actions {
+.acoes-modal {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
   margin-top: 20px;
 }
 
-.close {
+.fechar-modal {
   position: absolute;
   right: 20px;
   top: 20px;
@@ -426,46 +426,113 @@ tbody tr:hover {
 }
 
 @media (max-width: 900px) {
-  .main-grid {
+  .grade-principal {
     grid-template-columns: 1fr;
   }
 
-  .hero-card,
-  .page-header,
-  .panel {
+  .cartao-hero,
+  .cabecalho-pagina,
+  .painel {
     padding: 24px;
   }
 }
 
 @media (max-width: 680px) {
-  .app-shell {
+  .aplicacao {
     padding: 16px;
   }
 
-  .hero-title,
-  .brand-block {
+  .titulo-hero,
+  .bloco-marca {
     flex-direction: column;
     align-items: flex-start;
   }
 
-  .summary-card {
+  .resumo-mes {
     width: 100%;
   }
 
-  .button {
+  .botao {
     width: 100%;
   }
 
-  #todoList li {
+  #listaPendentes li {
     grid-template-columns: 1fr;
   }
 
-  .todo-input {
+  #listaPendentes li>* {
+    width: 100%;
+  }
+
+  .entrada-item {
     width: 100%;
     max-width: 100%;
   }
 
-  .todo-controls {
+  .controles-item {
     justify-content: flex-start;
+  }
+
+  .celula-acoes {
+    min-width: auto;
+  }
+
+  .envoltura-tabela {
+    overflow-x: hidden;
+  }
+
+  #tabelaHistorico {
+    min-width: auto;
+  }
+
+  #tabelaHistorico thead {
+    display: none;
+  }
+
+  #tabelaHistorico,
+  #tabelaHistorico tbody,
+  #tabelaHistorico tr {
+    display: block;
+    width: 100%;
+  }
+
+  #tabelaHistorico tr {
+    margin-bottom: 16px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 18px;
+    padding: 12px;
+    background: #ffffff;
+  }
+
+  #tabelaHistorico td {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 0;
+    border: none;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+    text-align: left;
+    position: relative;
+  }
+
+  #tabelaHistorico td:last-child {
+    border-bottom: none;
+  }
+
+  #tabelaHistorico td::before {
+    content: attr(data-label);
+    flex: 0 0 40%;
+    color: #334155;
+    font-weight: 700;
+    white-space: normal;
+  }
+
+  #tabelaHistorico td>* {
+    width: auto;
+  }
+
+  .acoes-modal {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
