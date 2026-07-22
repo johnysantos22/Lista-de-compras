@@ -255,6 +255,9 @@ function inserirNaTabela(item, quantidade, preco, total, mesAno, docId = null) {
 
   const cellAcoes = linha.insertCell(); cellAcoes.dataset.label = 'Ações'; cellAcoes.className = 'celula-acoes';
 
+  const btnEditar = document.createElement('button');
+  btnEditar.className = 'botao botao-pequeno botao-contorno';
+  btnEditar.innerText = 'Editar';
   const btnReutilizar = document.createElement('button');
   btnReutilizar.className = 'botao botao-pequeno botao-secundario';
   btnReutilizar.innerText = 'Reutilizar';
@@ -282,7 +285,59 @@ function inserirNaTabela(item, quantidade, preco, total, mesAno, docId = null) {
     }
   });
 
-  cellAcoes.append(btnReutilizar, btnRemover);
+  btnEditar.addEventListener('click', () => {
+    // Salva o estado original para o caso de cancelamento
+    const conteudoOriginal = cellAcoes.innerHTML;
+
+    // Substitui os textos por inputs
+    quantidadeCell.innerHTML = `<input type="number" class="entrada-item" value="${quantidade}" min="1">`;
+    precoCell.innerHTML = `<input type="number" class="entrada-item" value="${preco}" min="0.01" step="0.01">`;
+
+    // Cria botões de Salvar e Cancelar
+    const btnSalvarEdicao = document.createElement('button');
+    btnSalvarEdicao.className = 'botao botao-pequeno botao-primario';
+    btnSalvarEdicao.innerText = 'Salvar';
+
+    const btnCancelarEdicao = document.createElement('button');
+    btnCancelarEdicao.className = 'botao botao-pequeno botao-contorno';
+    btnCancelarEdicao.innerText = 'Cancelar';
+
+    // Limpa as ações e adiciona os novos botões
+    cellAcoes.innerHTML = '';
+    cellAcoes.append(btnSalvarEdicao, btnCancelarEdicao);
+
+    btnCancelarEdicao.addEventListener('click', () => {
+      // Restaura o conteúdo original
+      quantidadeCell.innerHTML = quantidade;
+      precoCell.innerHTML = formatter.format(preco);
+      cellAcoes.innerHTML = conteudoOriginal;
+      // Re-adiciona os listeners que foram perdidos
+      inserirNaTabela(item, quantidade, preco, total, mesAno, docId);
+      linha.remove(); // Remove a linha antiga para evitar duplicatas
+    });
+
+    btnSalvarEdicao.addEventListener('click', async () => {
+      const novaQuantidade = parseInt(quantidadeCell.querySelector('input').value, 10);
+      const novoPreco = parseFloat(precoCell.querySelector('input').value.replace(',', '.'));
+
+      if (!novaQuantidade || novaQuantidade <= 0 || !novoPreco || novoPreco <= 0) {
+        alert('Por favor, insira valores válidos para quantidade e preço.');
+        return;
+      }
+
+      const novoTotal = novaQuantidade * novoPreco;
+
+      // Atualiza no Firebase
+      await updateDoc(doc(db, 'compras', docId), {
+        quantidade: novaQuantidade,
+        preco: novoPreco,
+        total: novoTotal
+      });
+      await carregarHistoricoMes(mesAno); // Recarrega o histórico para refletir a mudança
+    });
+  });
+
+  cellAcoes.append(btnEditar, btnReutilizar, btnRemover);
 }
 
 async function removerDoHistorico(item, quantidade, preco, total, mesAno, docId = null) {
