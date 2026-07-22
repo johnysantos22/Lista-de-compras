@@ -355,6 +355,7 @@ tbody tr:hover {
 
 .celula-acoes {
   min-width: 170px;
+  display: flex;
 }
 
 .linha-acoes {
@@ -471,6 +472,12 @@ tbody tr:hover {
 
   .controles-item {
     justify-content: flex-start;
+  }
+
+  .celula-acoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
   }
 
   .celula-acoes {
