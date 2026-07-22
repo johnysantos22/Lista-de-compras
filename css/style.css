@@ -307,6 +307,15 @@ button:focus-visible {
   background: #fff;
 }
 
+.entrada-item-tabela {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  flex-grow: 1;
+}
+
 .controles-item {
   display: flex;
   gap: 10px;
@@ -535,15 +544,15 @@ tbody tr:hover {
   }
 
   /* Ajusta os inputs dentro da tabela em modo de edição */
-  #tabelaHistorico td .entrada-item {
-    width: 100%;
-    /* Ocupa o espaço disponível no contêiner flex */
-    max-width: 100%;
-    flex-grow: 1;
-    /* Permite que o input cresça */
+  #tabelaHistorico td .entrada-item-tabela {
+    text-align: right;
   }
 
   #tabelaHistorico td>* {
+    width: auto;
+  }
+
+  .botao-acao-edicao {
     width: auto;
   }
 

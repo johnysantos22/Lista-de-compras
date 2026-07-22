@@ -286,12 +286,12 @@ function inserirNaTabela(item, quantidade, preco, total, mesAno, docId = null) {
   });
 
   btnEditar.addEventListener('click', () => {
-    quantidadeCell.innerHTML = `<input type="number" class="entrada-item" value="${quantidade}" min="1">`;
-    precoCell.innerHTML = `<input type="number" class="entrada-item" value="${preco}" min="0.01" step="0.01">`;
+    quantidadeCell.innerHTML = `<input type="number" class="entrada-item-tabela" value="${quantidade}" min="1">`;
+    precoCell.innerHTML = `<input type="number" class="entrada-item-tabela" value="${preco}" min="0.01" step="0.01">`;
 
     // Cria botões de Salvar e Cancelar
     const btnSalvarEdicao = document.createElement('button');
-    btnSalvarEdicao.className = 'botao botao-pequeno botao-primario';
+    btnSalvarEdicao.className = 'botao botao-pequeno botao-primario botao-acao-edicao';
     btnSalvarEdicao.innerText = 'Salvar';
 
     const btnCancelarEdicao = document.createElement('button');
