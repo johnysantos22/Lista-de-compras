@@ -320,7 +320,7 @@ function inserirNaTabela(item, quantidade, preco, total, mesAno, docId = null) {
 
       try {
         // 1. Atualiza no Firebase
-        await updateDoc(doc(db, 'compras', docId), {
+        await updateDoc(doc(db, "compras", docId), {
           quantidade: novaQuantidade,
           preco: novoPreco,
           total: novoTotal

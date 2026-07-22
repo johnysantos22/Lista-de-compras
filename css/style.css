@@ -536,8 +536,11 @@ tbody tr:hover {
 
   /* Ajusta os inputs dentro da tabela em modo de edição */
   #tabelaHistorico td .entrada-item {
-    flex: 1;
-    min-width: 80px;
+    width: 100%;
+    /* Ocupa o espaço disponível no contêiner flex */
+    max-width: 100%;
+    flex-grow: 1;
+    /* Permite que o input cresça */
   }
 
   #tabelaHistorico td>* {
