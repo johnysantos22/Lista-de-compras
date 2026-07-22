@@ -330,8 +330,14 @@ function inserirNaTabela(item, quantidade, preco, total, mesAno, docId = null) {
         const novaLinha = inserirNaTabela(item, novaQuantidade, novoPreco, novoTotal, mesAno, docId);
         tabelaHistoricoBody.replaceChild(novaLinha, linha);
 
-        // 3. Atualiza o total do mês
-        await carregarHistoricoMes(mesAno);
+        // 3. Atualiza o total do mês silenciosamente
+        const itemAntigo = historico[mesAno]?.find(i => i.id === docId);
+        if (itemAntigo) {
+          itemAntigo.quantidade = novaQuantidade;
+          itemAntigo.preco = novoPreco;
+          itemAntigo.total = novoTotal;
+        }
+        atualizarTotalMes(mesAno);
 
       } catch (error) {
         tratarErroFirebase(error, "Não foi possível salvar a edição.");
