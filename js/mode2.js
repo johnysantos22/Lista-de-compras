@@ -286,10 +286,6 @@ function inserirNaTabela(item, quantidade, preco, total, mesAno, docId = null) {
   });
 
   btnEditar.addEventListener('click', () => {
-    // Salva o estado original para o caso de cancelamento
-    const conteudoOriginal = cellAcoes.innerHTML;
-
-    // Substitui os textos por inputs
     quantidadeCell.innerHTML = `<input type="number" class="entrada-item" value="${quantidade}" min="1">`;
     precoCell.innerHTML = `<input type="number" class="entrada-item" value="${preco}" min="0.01" step="0.01">`;
 
@@ -302,18 +298,13 @@ function inserirNaTabela(item, quantidade, preco, total, mesAno, docId = null) {
     btnCancelarEdicao.className = 'botao botao-pequeno botao-contorno';
     btnCancelarEdicao.innerText = 'Cancelar';
 
-    // Limpa as ações e adiciona os novos botões
     cellAcoes.innerHTML = '';
     cellAcoes.append(btnSalvarEdicao, btnCancelarEdicao);
 
     btnCancelarEdicao.addEventListener('click', () => {
-      // Restaura o conteúdo original
-      quantidadeCell.innerHTML = quantidade;
-      precoCell.innerHTML = formatter.format(preco);
-      cellAcoes.innerHTML = conteudoOriginal;
-      // Re-adiciona os listeners que foram perdidos
-      inserirNaTabela(item, quantidade, preco, total, mesAno, docId);
-      linha.remove(); // Remove a linha antiga para evitar duplicatas
+      // Recria a linha original para restaurar tudo, incluindo os listeners
+      const novaLinha = inserirNaTabela(item, quantidade, preco, total, mesAno, docId);
+      tabelaHistoricoBody.replaceChild(novaLinha, linha);
     });
 
     btnSalvarEdicao.addEventListener('click', async () => {
@@ -327,17 +318,32 @@ function inserirNaTabela(item, quantidade, preco, total, mesAno, docId = null) {
 
       const novoTotal = novaQuantidade * novoPreco;
 
-      // Atualiza no Firebase
-      await updateDoc(doc(db, 'compras', docId), {
-        quantidade: novaQuantidade,
-        preco: novoPreco,
-        total: novoTotal
-      });
-      await carregarHistoricoMes(mesAno); // Recarrega o histórico para refletir a mudança
+      try {
+        // 1. Atualiza no Firebase
+        await updateDoc(doc(db, 'compras', docId), {
+          quantidade: novaQuantidade,
+          preco: novoPreco,
+          total: novoTotal
+        });
+
+        // 2. Atualiza a linha na tela sem recarregar tudo
+        const novaLinha = inserirNaTabela(item, novaQuantidade, novoPreco, novoTotal, mesAno, docId);
+        tabelaHistoricoBody.replaceChild(novaLinha, linha);
+
+        // 3. Atualiza o total do mês
+        await carregarHistoricoMes(mesAno);
+
+      } catch (error) {
+        tratarErroFirebase(error, "Não foi possível salvar a edição.");
+        // Em caso de erro, restaura a linha original
+        const linhaOriginal = inserirNaTabela(item, quantidade, preco, total, mesAno, docId);
+        tabelaHistoricoBody.replaceChild(linhaOriginal, linha);
+      }
     });
   });
 
   cellAcoes.append(btnEditar, btnReutilizar, btnRemover);
+  return linha; // Retorna a linha criada
 }
 
 async function removerDoHistorico(item, quantidade, preco, total, mesAno, docId = null) {
