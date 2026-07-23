@@ -182,7 +182,8 @@ btnLimparTudo.addEventListener('click', async () => {
     mostrarToast('Histórico limpo com sucesso.', 'sucesso');
   }
 });
-btnFecharModal.addEventListener('click', () => { janelaHistorico.style.display = 'none'; });
+btnFecharModal.addEventListener('click', (e) => { e.stopPropagation(); janelaHistorico.style.display = 'none'; });
+btnFecharModal.addEventListener('touchend', (e) => { e.preventDefault(); e.stopPropagation(); janelaHistorico.style.display = 'none'; });
 janelaHistorico.addEventListener('click', event => { if (event.target === janelaHistorico) janelaHistorico.style.display = 'none'; });
 
 async function iniciarApp() {

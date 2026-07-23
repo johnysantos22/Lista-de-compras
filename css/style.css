@@ -658,19 +658,21 @@ button:focus-visible {
 
 .fechar-modal {
   position: absolute;
-  right: 16px;
-  top: 16px;
+  right: 12px;
+  top: 12px;
   z-index: 10;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   display: grid;
   place-items: center;
-  font-size: 1.2rem;
+  font-size: 1.4rem;
   color: #64748b;
   background: #f1f5f9;
   border: none;
   border-radius: 50%;
   cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   transition: background 0.2s, color 0.2s, transform 0.15s;
 }
 
@@ -678,6 +680,11 @@ button:focus-visible {
   background: #e2e8f0;
   color: #1e293b;
   transform: scale(1.1);
+}
+
+.fechar-modal:active {
+  transform: scale(0.92);
+  background: #e2e8f0;
 }
 
 .confirmar-modal {
