@@ -47,6 +47,52 @@ let historico = {};
 let firestoreDisponivel = true;
 
 // ==========================================
+// MODAL DE CONFIRMAÇÃO
+// ==========================================
+
+const janelaConfirmar = document.getElementById('janelaConfirmar');
+const confirmarTitulo = document.getElementById('confirmarTitulo');
+const confirmarMensagem = document.getElementById('confirmarMensagem');
+const confirmarIcone = document.getElementById('confirmarIcone');
+const btnConfirmarSim = document.getElementById('btnConfirmarSim');
+const btnConfirmarNao = document.getElementById('btnConfirmarNao');
+
+function confirmarAcao(titulo, mensagem, tipo = 'alerta') {
+  return new Promise(resolve => {
+    confirmarTitulo.textContent = titulo;
+    confirmarMensagem.textContent = mensagem;
+    confirmarIcone.className = 'confirmar-icone ' + tipo;
+    confirmarIcone.textContent = tipo === 'perigo' ? '!' : '?';
+    janelaConfirmar.style.display = 'flex';
+
+    const limpar = () => {
+      janelaConfirmar.style.display = 'none';
+      btnConfirmarSim.onclick = null;
+      btnConfirmarNao.onclick = null;
+    };
+
+    btnConfirmarSim.onclick = () => { limpar(); resolve(true); };
+    btnConfirmarNao.onclick = () => { limpar(); resolve(false); };
+    janelaConfirmar.addEventListener('click', e => {
+      if (e.target === janelaConfirmar) { limpar(); resolve(false); }
+    }, { once: true });
+  });
+}
+
+// ==========================================
+// TOAST NOTIFICATIONS
+// ==========================================
+
+function mostrarToast(mensagem, tipo = 'info') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = 'toast ' + tipo;
+  toast.textContent = mensagem;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
+// ==========================================
 // SISTEMA DE AUTENTICAÇÃO
 // ==========================================
 
@@ -95,7 +141,7 @@ function marcarFirebaseIndisponivel() {
 
 function tratarErroFirebase(error, mensagemUsuario) {
   console.error('Firebase error:', error);
-  alert(`${mensagemUsuario}\n\nDetalhe: ${error?.message || 'erro desconhecido.'}`);
+  mostrarToast(`${mensagemUsuario} Detalhe: ${error?.message || 'erro desconhecido.'}`, 'erro');
   marcarFirebaseIndisponivel();
 }
 
@@ -103,11 +149,12 @@ btnAdicionar.addEventListener('click', adicionarItem);
 entradaItem.addEventListener('keydown', event => { if (event.key === 'Enter') adicionarItem(); });
 btnMostrarHistoricoPorMes.addEventListener('click', mostrarHistoricoPorMes);
 btnLimparTudo.addEventListener('click', async () => {
-  if (confirm('Deseja limpar todo o histórico?')) {
+  if (await confirmarAcao('Limpar histórico', 'Tem certeza que deseja apagar todo o histórico de compras? Esta ação não pode ser desfeita.', 'perigo')) {
     await limparHistoricoFirebaseTudo();
     historico = {};
     await carregarHistoricoMes(mesAnoAtual);
     janelaHistorico.style.display = 'none';
+    mostrarToast('Histórico limpo com sucesso.', 'sucesso');
   }
 });
 btnFecharModal.addEventListener('click', () => { janelaHistorico.style.display = 'none'; });
@@ -163,7 +210,7 @@ async function carregarListaCompras() {
 async function adicionarItem() {
   const valor = entradaItem.value.trim();
   erroLista.innerText = '';
-  if (!firestoreDisponivel) { alert('Firebase indisponível.'); return; }
+  if (!firestoreDisponivel) { mostrarToast('Firebase indisponível.', 'erro'); return; }
   if (!valor) { erroLista.innerText = 'O nome do item é obrigatório.'; return; }
   if (listaCompras.some(itemObj => itemObj.item === valor)) { erroLista.innerText = 'Este item já está na lista.'; return; }
 
@@ -181,22 +228,40 @@ function renderizarItem({ id, item }) {
 
   let nomeAtual = item;
 
+  const topo = document.createElement('div');
+  topo.className = 'item-pendente-topo';
+
   const nomeSpan = document.createElement('span');
   nomeSpan.className = 'nome-item';
   nomeSpan.innerText = nomeAtual;
 
+  const seta = document.createElement('span');
+  seta.className = 'seta-expandir';
+  seta.textContent = '▼';
+
+  topo.append(nomeSpan, seta);
+
+  const detalhes = document.createElement('div');
+  detalhes.className = 'item-pendente-detalhes';
+
   const inputQuantidade = document.createElement('input');
   inputQuantidade.type = 'number';
-  inputQuantidade.placeholder = 'Qtd';
+  inputQuantidade.placeholder = 'Quantidade';
   inputQuantidade.min = '1';
   inputQuantidade.className = 'entrada-item';
 
   const inputPreco = document.createElement('input');
   inputPreco.type = 'number';
-  inputPreco.placeholder = 'Preço';
+  inputPreco.placeholder = 'Preço unitário';
   inputPreco.min = '0.01';
   inputPreco.step = '0.01';
   inputPreco.className = 'entrada-item';
+
+  const inputsRow = document.createElement('div');
+  inputsRow.style.display = 'flex';
+  inputsRow.style.gap = '12px';
+  inputsRow.style.marginBottom = '12px';
+  inputsRow.append(inputQuantidade, inputPreco);
 
   const botaoSalvar = document.createElement('button');
   botaoSalvar.className = 'botao botao-pequeno botao-primario';
@@ -217,11 +282,19 @@ function renderizarItem({ id, item }) {
   const erroListaLocal = document.createElement('div');
   erroListaLocal.className = 'erro-input';
 
+  detalhes.append(inputsRow, actions, erroListaLocal);
+
+  topo.addEventListener('click', (e) => {
+    if (e.target.closest('button')) return;
+    li.classList.toggle('expandido');
+  });
+
   botaoRemover.addEventListener('click', async () => {
-    if (confirm(`Deseja remover "${nomeAtual}" da lista?`)) {
+    if (await confirmarAcao('Remover item', `Deseja remover "${nomeAtual}" da sua lista?`, 'perigo')) {
       await removerListaPendenteFirebase(id);
       listaCompras = listaCompras.filter(itemObj => itemObj.id !== id);
       li.remove();
+      mostrarToast(`"${nomeAtual}" removido da lista.`, 'sucesso');
     }
   });
 
@@ -233,7 +306,6 @@ function renderizarItem({ id, item }) {
 
     if (!quantidade || quantidade <= 0 || !preco || preco <= 0) {
       erroListaLocal.innerText = 'Informe quantidade e preço válidos.';
-      if (!li.contains(erroListaLocal)) li.appendChild(erroListaLocal);
       return;
     }
 
@@ -245,6 +317,7 @@ function renderizarItem({ id, item }) {
     listaCompras = listaCompras.filter(itemObj => itemObj.id !== id);
     li.remove();
     await carregarHistoricoMes(mesAnoAtual);
+    mostrarToast(`"${nomeAtual}" salvo no histórico!`, 'sucesso');
   });
 
   botaoEditar.addEventListener('click', () => {
@@ -253,6 +326,7 @@ function renderizarItem({ id, item }) {
     inputNome.value = nomeAtual;
     inputNome.className = 'entrada-item';
     inputNome.style.width = '100%';
+    inputNome.style.marginBottom = '12px';
 
     nomeSpan.replaceWith(inputNome);
 
@@ -276,7 +350,7 @@ function renderizarItem({ id, item }) {
     btnSalvarEdicao.addEventListener('click', async () => {
       const novoNome = inputNome.value.trim();
       if (!novoNome) {
-        alert('O nome do item não pode ficar vazio.');
+        mostrarToast('O nome do item não pode ficar vazio.', 'aviso');
         return;
       }
       if (novoNome === nomeAtual) {
@@ -286,7 +360,7 @@ function renderizarItem({ id, item }) {
         return;
       }
       if (listaCompras.some(obj => obj.item === novoNome && obj.id !== id)) {
-        alert('Este item já está na lista.');
+        mostrarToast('Este item já está na lista.', 'aviso');
         return;
       }
 
@@ -302,10 +376,11 @@ function renderizarItem({ id, item }) {
 
       actions.innerHTML = '';
       actions.append(botaoSalvar, botaoEditar, botaoRemover);
+      mostrarToast('Item atualizado com sucesso.', 'sucesso');
     });
   });
 
-  li.append(nomeSpan, inputQuantidade, inputPreco, actions);
+  li.append(topo, detalhes);
   listaPendentesUL.appendChild(li);
 }
 
@@ -332,10 +407,10 @@ function inserirNaTabela(item, quantidade, preco, total, mesAno, docId = null) {
       if (docRef) {
         listaCompras.push({ id: docRef.id, item: item });
         carregarListaCompras();
-        alert(`"${item}" adicionado novamente à lista.`);
+        mostrarToast(`"${item}" adicionado à lista.`, 'sucesso');
       }
     } else {
-      alert(`"${item}" já está na lista.`);
+      mostrarToast(`"${item}" já está na lista.`, 'aviso');
     }
   });
 
@@ -343,10 +418,11 @@ function inserirNaTabela(item, quantidade, preco, total, mesAno, docId = null) {
   btnRemover.className = 'botao botao-pequeno botao-perigo';
   btnRemover.innerText = 'Remover';
   btnRemover.addEventListener('click', async () => {
-    if (confirm(`Deseja remover "${item}" do histórico?`)) {
+    if (await confirmarAcao('Remover do histórico', `Deseja remover "${item}" do seu histórico de compras?`, 'perigo')) {
       await removerDoHistorico(item, quantidade, preco, total, mesAno, docId);
       linha.remove();
       atualizarTotalMes(mesAno);
+      mostrarToast(`"${item}" removido do histórico.`, 'sucesso');
     }
   });
 
@@ -379,11 +455,11 @@ function inserirNaTabela(item, quantidade, preco, total, mesAno, docId = null) {
       const novoPreco = parseFloat(precoCell.querySelector('input').value.replace(',', '.'));
 
       if (!novoItem) {
-        alert('O nome do item não pode ficar vazio.');
+        mostrarToast('O nome do item não pode ficar vazio.', 'aviso');
         return;
       }
       if (!novaQuantidade || novaQuantidade <= 0 || !novoPreco || novoPreco <= 0) {
-        alert('Por favor, insira valores válidos para quantidade e preço.');
+        mostrarToast('Insira valores válidos para quantidade e preço.', 'aviso');
         return;
       }
 
@@ -485,7 +561,7 @@ async function reutilizarTodosDoMes(mesAno) {
       }
     }
     await carregarListaCompras();
-    alert('Itens adicionados de volta à lista!');
+    mostrarToast('Itens adicionados de volta à lista!', 'sucesso');
   }
 }
 
@@ -533,10 +609,11 @@ function criarBotoesLimpar(totaisPorMes = {}) {
     btn.className = 'botao botao-perigo botao-pequeno';
     btn.innerText = `Limpar ${mes}`;
     btn.addEventListener('click', async () => {
-      if (confirm(`Deseja limpar o mês ${mes}?`)) {
+      if (await confirmarAcao('Limpar mês', `Deseja apagar todo o histórico de ${mes}? Esta ação não pode ser desfeita.`, 'perigo')) {
         await limparHistoricoFirebaseMes(mes);
         await carregarHistoricoMes(mesAnoAtual);
         janelaHistorico.style.display = 'none';
+        mostrarToast(`Histórico de ${mes} limpo.`, 'sucesso');
       }
     });
     containerBotoes.appendChild(btn);

@@ -295,14 +295,22 @@ button:focus-visible {
 }
 
 #listaPendentes li {
-  display: grid;
-  grid-template-columns: minmax(160px, 1fr) auto;
-  gap: 12px;
-  align-items: center;
-  padding: 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
   border-radius: 18px;
   border: 1px solid rgba(15, 23, 42, 0.08);
   background: #ffffff;
+  transition: box-shadow 0.2s ease;
+}
+
+#listaPendentes li:hover {
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+}
+
+.item-pendente-topo {
+  padding: 16px 18px;
 }
 
 .nome-item {
@@ -451,6 +459,127 @@ tbody tr:hover {
   background: #f8fafc;
 }
 
+.confirmar-modal {
+  max-width: 400px;
+  text-align: center;
+}
+
+.confirmar-icone {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+}
+
+.confirmar-icone.alerta {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.confirmar-icone.perigo {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.confirmar-modal h3 {
+  margin-top: 0;
+  margin-bottom: 8px;
+}
+
+.confirmar-modal p {
+  color: #4b5563;
+  margin: 0 0 20px;
+}
+
+.confirmar-modal .acoes-modal {
+  justify-content: center;
+}
+
+.toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.toast {
+  padding: 14px 20px;
+  border-radius: 14px;
+  color: #fff;
+  font-weight: 500;
+  font-size: 0.95rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  pointer-events: auto;
+  animation: toastEntrar 0.3s ease, toastSair 0.3s ease 2.7s forwards;
+  max-width: 340px;
+  word-break: break-word;
+}
+
+.toast.sucesso { background: #059669; }
+.toast.erro { background: #dc2626; }
+.toast.aviso { background: #d97706; }
+.toast.info { background: #2563eb; }
+
+@keyframes toastEntrar {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes toastSair {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(12px); }
+}
+
+#listaPendentes li {
+  cursor: pointer;
+}
+
+.item-pendente-topo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.item-pendente-topo .nome-item {
+  flex: 1;
+}
+
+.seta-expandir {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  color: #475569;
+  transition: transform 0.25s ease;
+  flex-shrink: 0;
+}
+
+#listaPendentes li.expandido .seta-expandir {
+  transform: rotate(180deg);
+}
+
+.item-pendente-detalhes {
+  display: none;
+  width: 100%;
+}
+
+#listaPendentes li.expandido .item-pendente-detalhes {
+  display: block;
+}
+
 @media (max-width: 900px) {
   .grade-principal {
     grid-template-columns: 1fr;
@@ -460,10 +589,6 @@ tbody tr:hover {
   .cabecalho-pagina,
   .painel {
     padding: 24px;
-  }
-
-  #listaPendentes li {
-    grid-template-columns: 1fr 1fr;
   }
 }
 
@@ -491,15 +616,11 @@ tbody tr:hover {
     width: 100%;
   }
 
-  #listaPendentes li {
-    grid-template-columns: 1fr;
-  }
-
   #listaPendentes li>* {
     width: 100%;
   }
 
-  .entrada-item {
+  .item-pendente-detalhes .entrada-item {
     width: 100%;
     max-width: 100%;
     min-width: 0;
@@ -598,5 +719,15 @@ tbody tr:hover {
   .acoes-modal {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .toast-container {
+    bottom: 16px;
+    right: 16px;
+    left: 16px;
+  }
+
+  .toast {
+    max-width: 100%;
   }
 }
