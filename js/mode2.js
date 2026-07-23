@@ -801,16 +801,77 @@ async function mostrarHistoricoPorMes() {
   }
 
   if (todosItens.length === 0) {
-    conteudoHistorico.innerText = 'Nenhum histórico encontrado.';
+    conteudoHistorico.innerHTML = `
+      <div class="mes-vazio">
+        <span class="mes-vazio-icone">📋</span>
+        <p>Nenhum histórico encontrado.</p>
+      </div>`;
     containerBotoes.innerHTML = '';
   } else {
     const totaisPorMes = {};
+    const itensPorMes = {};
     todosItens.forEach(data => {
       totaisPorMes[data.mesAno] = (totaisPorMes[data.mesAno] || 0) + data.total;
+      if (!itensPorMes[data.mesAno]) itensPorMes[data.mesAno] = [];
+      itensPorMes[data.mesAno].push(data);
     });
-    let texto = 'Gastos por mês:\n\n';
-    for (const mes in totaisPorMes) texto += `${mes}: ${formatter.format(totaisPorMes[mes])}\n`;
-    conteudoHistorico.innerText = texto;
+
+    const mesesOrdenados = Object.keys(totaisPorMes).sort((a, b) => {
+      const [mA, aA] = a.split('/');
+      const [mB, aB] = b.split('/');
+      return (aA * 12 + mA) - (aB * 12 + mB);
+    });
+
+    const gradienteMes = [
+      'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+      'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+      'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+      'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+      'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)',
+      'linear-gradient(135deg, #fccb90 0%, #d57eeb 100%)',
+      'linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%)'
+    ];
+
+    let html = '';
+    mesesOrdenados.forEach((mes, idx) => {
+      const total = totaisPorMes[mes];
+      const qtdItens = itensPorMes[mes].length;
+      const [numeroMes] = mes.split('/');
+      const nomeMes = new Date(2024, parseInt(numeroMes) - 1).toLocaleDateString('pt-BR', { month: 'long' });
+      const cor = gradienteMes[idx % gradienteMes.length];
+
+      html += `
+        <div class="mes-card">
+          <div class="mes-card-cabecalho" style="background: ${cor}">
+            <span class="mes-card-nome">${nomeMes}</span>
+            <span class="mes-card-ano">${mes.split('/')[1]}</span>
+          </div>
+          <div class="mes-card-corpo">
+            <div class="mes-card-estatisticas">
+              <div class="mes-estatistica">
+                <span class="mes-estat-valor">${formatter.format(total)}</span>
+                <span class="mes-estat-rotulo">Total gasto</span>
+              </div>
+              <div class="mes-estatistica">
+                <span class="mes-estat-valor">${qtdItens}</span>
+                <span class="mes-estat-rotulo">${qtdItens === 1 ? 'item' : 'itens'}</span>
+              </div>
+            </div>
+            <div class="mes-card-itens">
+              ${itensPorMes[mes].map(item => `
+                <div class="mes-item-linha">
+                  <span class="mes-item-nome">${item.item}</span>
+                  <span class="mes-item-qty">x${item.quantidade}</span>
+                  <span class="mes-item-total">${formatter.format(item.total)}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>`;
+    });
+
+    conteudoHistorico.innerHTML = html;
     criarBotoesLimpar(totaisPorMes);
   }
   janelaHistorico.style.display = 'flex';
@@ -818,10 +879,15 @@ async function mostrarHistoricoPorMes() {
 
 function criarBotoesLimpar(totaisPorMes = {}) {
   containerBotoes.innerHTML = '';
-  for (const mes in totaisPorMes) {
+  const mesesOrdenados = Object.keys(totaisPorMes).sort((a, b) => {
+    const [mA, aA] = a.split('/');
+    const [mB, aB] = b.split('/');
+    return (aA * 12 + mA) - (aB * 12 + mB);
+  });
+  for (const mes of mesesOrdenados) {
     const btn = document.createElement('button');
-    btn.className = 'botao botao-perigo botao-pequeno';
-    btn.innerText = `Limpar ${mes}`;
+    btn.className = 'botao botao-pequeno botao-contorno botao-limpar-mes';
+    btn.innerHTML = `<span class="btn-limpar-icone">✕</span> Limpar ${mes}`;
     btn.addEventListener('click', async () => {
       if (await confirmarAcao('Limpar mês', `Deseja apagar todo o histórico de ${mes}? Esta ação não pode ser desfeita.`, 'perigo')) {
         if (firestoreDisponivel) {

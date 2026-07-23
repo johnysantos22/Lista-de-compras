@@ -78,10 +78,14 @@
       </footer>
 
       <div id="janelaHistorico" class="janela-modal">
-        <div class="conteudo-modal">
+        <div class="conteudo-modal modal-historico">
           <button class="fechar-modal" id="btnFecharModal">×</button>
-          <h3>Histórico de Gastos por Mês</h3>
-          <pre id="conteudoHistorico"></pre>
+          <div class="modal-historico-cabecalho">
+            <div class="modal-historico-icone">📊</div>
+            <h3>Histórico de Gastos por Mês</h3>
+            <p class="modal-historico-sub">Resumo dos seus gastos mensais</p>
+          </div>
+          <div id="conteudoHistorico" class="lista-meses"></div>
           <div id="containerBotoes" class="acoes-modal"></div>
         </div>
       </div>
