@@ -494,7 +494,6 @@ button:focus-visible {
 .modal-historico {
   max-width: 560px;
   padding: 0;
-  overflow: hidden;
 }
 
 .modal-historico-cabecalho {
@@ -502,6 +501,7 @@ button:focus-visible {
   padding: 28px 28px 20px;
   text-align: center;
   border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 24px 24px 0 0;
 }
 
 .modal-historico-icone {
@@ -658,21 +658,26 @@ button:focus-visible {
 
 .fechar-modal {
   position: absolute;
-  right: 20px;
-  top: 20px;
-  width: 38px;
-  height: 38px;
+  right: 16px;
+  top: 16px;
+  z-index: 10;
+  width: 36px;
+  height: 36px;
   display: grid;
   place-items: center;
-  font-size: 1.3rem;
-  color: #475569;
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 10px;
-  transition: background 0.2s;
+  font-size: 1.2rem;
+  color: #64748b;
+  background: #f1f5f9;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, transform 0.15s;
 }
 
 .fechar-modal:hover {
-  background: rgba(255, 255, 255, 1);
+  background: #e2e8f0;
+  color: #1e293b;
+  transform: scale(1.1);
 }
 
 .confirmar-modal {
