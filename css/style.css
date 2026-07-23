@@ -349,46 +349,109 @@ button:focus-visible {
   min-width: 100px;
 }
 
-.envoltura-tabela {
-  overflow-x: auto;
+.lista-historico {
+  display: grid;
+  gap: 12px;
   margin-top: 20px;
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: #ffffff;
+.card-historico {
+  display: flex;
+  flex-direction: column;
   border-radius: 18px;
-  overflow: hidden;
-  table-layout: fixed;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: #ffffff;
+  transition: box-shadow 0.2s ease;
+  cursor: pointer;
 }
 
-th,
-td {
+.card-historico:hover {
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+}
+
+.card-historico-topo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   padding: 16px 18px;
-  text-align: left;
-  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
 }
 
-thead th {
-  background: #f8fafc;
-  color: #334155;
+.card-historico-topo .nome-item {
+  flex: 1;
+  font-weight: 600;
+  color: #111827;
+  word-break: break-word;
+}
+
+.card-historico-valor {
   font-weight: 700;
+  color: #059669;
+  white-space: nowrap;
 }
 
-tbody tr:hover {
-  background: rgba(37, 99, 235, 0.04);
+.card-historico-mes {
+  font-size: 0.85rem;
+  color: #6b7280;
+  background: #f1f5f9;
+  padding: 4px 10px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+.card-historico-detalhes {
+  display: none;
+  width: 100%;
+  padding: 0 18px 18px;
+}
+
+.card-historico.expandido .card-historico-detalhes {
+  display: block;
+}
+
+.card-historico-detalhes .detalhe-linha {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.card-historico-detalhes .detalhe-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.card-historico-detalhes .detalhe-item span:first-child {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.card-historico-detalhes .detalhe-item span:last-child {
+  font-weight: 600;
+  color: #111827;
+}
+
+.card-historico-detalhes .entrada-item-tabela {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+}
+
+.card-historico-detalhes .controles-item {
+  margin-top: 4px;
+}
+
+.card-historico-detalhes .controles-item button {
+  min-width: auto;
 }
 
 .texto-centralizado {
   text-align: center;
-}
-
-.celula-acoes {
-  min-width: 170px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
 }
 
 .linha-acoes {
@@ -567,7 +630,8 @@ tbody tr:hover {
   flex-shrink: 0;
 }
 
-#listaPendentes li.expandido .seta-expandir {
+#listaPendentes li.expandido .seta-expandir,
+.card-historico.expandido .seta-expandir {
   transform: rotate(180deg);
 }
 
@@ -628,92 +692,6 @@ tbody tr:hover {
 
   .controles-item {
     justify-content: flex-start;
-  }
-
-  .celula-acoes {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    min-width: auto;
-  }
-
-  .celula-acoes button {
-    min-width: auto;
-    flex: 1 1 calc(50% - 4px);
-  }
-
-  .envoltura-tabela {
-    overflow-x: auto;
-  }
-
-  #tabelaHistorico {
-    min-width: auto;
-  }
-
-  #tabelaHistorico thead {
-    display: none;
-  }
-
-  #tabelaHistorico,
-  #tabelaHistorico tbody,
-  #tabelaHistorico tr {
-    display: block;
-    width: 100%;
-  }
-
-  #tabelaHistorico tr {
-    margin-bottom: 16px;
-    border: 1px solid rgba(15, 23, 42, 0.08);
-    border-radius: 18px;
-    padding: 12px;
-    background: #ffffff;
-  }
-
-  #tabelaHistorico td {
-    display: flex;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 10px 0;
-    border: none;
-    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
-    text-align: left;
-    position: relative;
-  }
-
-  #tabelaHistorico td:last-child {
-    border-bottom: none;
-  }
-
-  #tabelaHistorico td::before {
-    content: attr(data-label);
-    flex: 0 0 40%;
-    color: #334155;
-    font-weight: 700;
-    white-space: normal;
-  }
-
-  /* Ajusta os inputs dentro da tabela em modo de edição */
-  #tabelaHistorico td .entrada-item-tabela {
-    text-align: right;
-    width: 100%;
-    min-width: 0;
-  }
-
-  #tabelaHistorico td {
-    flex-wrap: wrap;
-  }
-
-  #tabelaHistorico td::before {
-    flex: 0 0 100%;
-    margin-bottom: 4px;
-  }
-
-  #tabelaHistorico td>* {
-    width: auto;
-  }
-
-  .botao-acao-edicao {
-    width: auto;
   }
 
   .acoes-modal {

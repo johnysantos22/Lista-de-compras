@@ -20,7 +20,7 @@ let currentUser = null;
 const entradaItem = document.getElementById('itemCompra');
 const listaPendentesUL = document.getElementById('listaPendentes');
 const erroLista = document.getElementById('erroLista');
-const tabelaHistoricoBody = document.querySelector('#tabelaHistorico tbody');
+const listaHistorico = document.getElementById('listaHistorico');
 const totalMesSpan = document.getElementById('totalMes');
 const containerBotoesReutilizar = document.getElementById('containerBotoesReutilizar');
 const janelaHistorico = document.getElementById('janelaHistorico');
@@ -119,7 +119,7 @@ onAuthStateChanged(auth, async (user) => {
     conteudoApp.style.display = 'none';
 
     listaPendentesUL.innerHTML = '';
-    tabelaHistoricoBody.innerHTML = '';
+    listaHistorico.innerHTML = '';
     historico = {};
   }
 });
@@ -385,120 +385,203 @@ function renderizarItem({ id, item }) {
 }
 
 function inserirNaTabela(item, quantidade, preco, total, mesAno, docId = null) {
-  const linha = tabelaHistoricoBody.insertRow();
+  const card = document.createElement('div');
+  card.className = 'card-historico';
 
-  const itemCell = linha.insertCell(); itemCell.dataset.label = 'Item'; itemCell.innerText = item;
-  const quantidadeCell = linha.insertCell(); quantidadeCell.dataset.label = 'Quantidade'; quantidadeCell.innerText = quantidade;
-  const precoCell = linha.insertCell(); precoCell.dataset.label = 'Preço'; precoCell.innerText = formatter.format(preco);
-  const totalCell = linha.insertCell(); totalCell.dataset.label = 'Total'; totalCell.innerText = formatter.format(total);
-  const mesAnoCell = linha.insertCell(); mesAnoCell.dataset.label = 'Mês/Ano'; mesAnoCell.innerText = mesAno;
+  let nomeAtual = item;
 
-  const cellAcoes = linha.insertCell(); cellAcoes.dataset.label = 'Ações'; cellAcoes.className = 'celula-acoes';
+  const topo = document.createElement('div');
+  topo.className = 'card-historico-topo';
+
+  const nomeSpan = document.createElement('span');
+  nomeSpan.className = 'nome-item';
+  nomeSpan.innerText = nomeAtual;
+
+  const valorSpan = document.createElement('span');
+  valorSpan.className = 'card-historico-valor';
+  valorSpan.innerText = formatter.format(total);
+
+  const mesSpan = document.createElement('span');
+  mesSpan.className = 'card-historico-mes';
+  mesSpan.innerText = mesAno;
+
+  const seta = document.createElement('span');
+  seta.className = 'seta-expandir';
+  seta.textContent = '▼';
+
+  topo.append(nomeSpan, valorSpan, mesSpan, seta);
+
+  const detalhes = document.createElement('div');
+  detalhes.className = 'card-historico-detalhes';
+
+  const infoLinha = document.createElement('div');
+  infoLinha.className = 'detalhe-linha';
+
+  const infoQtd = document.createElement('div');
+  infoQtd.className = 'detalhe-item';
+  infoQtd.innerHTML = `<span>Quantidade</span><span>${quantidade}</span>`;
+
+  const infoPreco = document.createElement('div');
+  infoPreco.className = 'detalhe-item';
+  infoPreco.innerHTML = `<span>Preço unit.</span><span>${formatter.format(preco)}</span>`;
+
+  infoLinha.append(infoQtd, infoPreco);
+
+  const actions = document.createElement('div');
+  actions.className = 'controles-item';
+
+  const btnReutilizar = document.createElement('button');
+  btnReutilizar.className = 'botao botao-pequeno botao-secundario';
+  btnReutilizar.innerText = 'Reutilizar';
+  btnReutilizar.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    if (!listaCompras.some(obj => obj.item === nomeAtual)) {
+      const docRef = await salvarListaPendenteFirebase(nomeAtual);
+      if (docRef) {
+        listaCompras.push({ id: docRef.id, item: nomeAtual });
+        carregarListaCompras();
+        mostrarToast(`"${nomeAtual}" adicionado à lista.`, 'sucesso');
+      }
+    } else {
+      mostrarToast(`"${nomeAtual}" já está na lista.`, 'aviso');
+    }
+  });
 
   const btnEditar = document.createElement('button');
   btnEditar.className = 'botao botao-pequeno botao-contorno';
   btnEditar.innerText = 'Editar';
-  const btnReutilizar = document.createElement('button');
-  btnReutilizar.className = 'botao botao-pequeno botao-secundario';
-  btnReutilizar.innerText = 'Reutilizar';
-  btnReutilizar.addEventListener('click', async () => {
-    if (!listaCompras.some(obj => obj.item === item)) {
-      const docRef = await salvarListaPendenteFirebase(item);
-      if (docRef) {
-        listaCompras.push({ id: docRef.id, item: item });
-        carregarListaCompras();
-        mostrarToast(`"${item}" adicionado à lista.`, 'sucesso');
-      }
-    } else {
-      mostrarToast(`"${item}" já está na lista.`, 'aviso');
-    }
-  });
+  btnEditar.addEventListener('click', (e) => {
+    e.stopPropagation();
+    detalhes.classList.add('modo-edicao');
 
-  const btnRemover = document.createElement('button');
-  btnRemover.className = 'botao botao-pequeno botao-perigo';
-  btnRemover.innerText = 'Remover';
-  btnRemover.addEventListener('click', async () => {
-    if (await confirmarAcao('Remover do histórico', `Deseja remover "${item}" do seu histórico de compras?`, 'perigo')) {
-      await removerDoHistorico(item, quantidade, preco, total, mesAno, docId);
-      linha.remove();
-      atualizarTotalMes(mesAno);
-      mostrarToast(`"${item}" removido do histórico.`, 'sucesso');
-    }
-  });
+    infoLinha.innerHTML = '';
 
-  btnEditar.addEventListener('click', () => {
-    itemCell.innerHTML = `<input type="text" class="entrada-item-tabela" value="${item}">`;
-    quantidadeCell.innerHTML = `<input type="number" class="entrada-item-tabela" value="${quantidade}" min="1">`;
-    precoCell.innerHTML = `<input type="number" class="entrada-item-tabela" value="${preco}" min="0.01" step="0.01">`;
+    const inputNome = document.createElement('input');
+    inputNome.type = 'text';
+    inputNome.value = nomeAtual;
+    inputNome.className = 'entrada-item-tabela';
+    inputNome.style.marginBottom = '12px';
 
-    // Cria botões de Salvar e Cancelar
-    const btnSalvarEdicao = document.createElement('button');
-    btnSalvarEdicao.className = 'botao botao-pequeno botao-primario botao-acao-edicao';
-    btnSalvarEdicao.innerText = 'Salvar';
+    const inputQtd = document.createElement('input');
+    inputQtd.type = 'number';
+    inputQtd.value = quantidade;
+    inputQtd.min = '1';
+    inputQtd.className = 'entrada-item-tabela';
 
-    const btnCancelarEdicao = document.createElement('button');
-    btnCancelarEdicao.className = 'botao botao-pequeno botao-contorno';
-    btnCancelarEdicao.innerText = 'Cancelar';
+    const inputPreco = document.createElement('input');
+    inputPreco.type = 'number';
+    inputPreco.value = preco;
+    inputPreco.min = '0.01';
+    inputPreco.step = '0.01';
+    inputPreco.className = 'entrada-item-tabela';
 
-    cellAcoes.innerHTML = '';
-    cellAcoes.append(btnSalvarEdicao, btnCancelarEdicao);
+    const editRow = document.createElement('div');
+    editRow.className = 'detalhe-linha';
+    const editQtd = document.createElement('div');
+    editQtd.className = 'detalhe-item';
+    editQtd.style.flex = '1';
+    editQtd.innerHTML = '<span>Quantidade</span>';
+    editQtd.appendChild(inputQtd);
+    const editPreco = document.createElement('div');
+    editPreco.className = 'detalhe-item';
+    editPreco.style.flex = '1';
+    editPreco.innerHTML = '<span>Preço unit.</span>';
+    editPreco.appendChild(inputPreco);
+    editRow.append(editQtd, editPreco);
 
-    btnCancelarEdicao.addEventListener('click', () => {
-      // Recria a linha original para restaurar tudo, incluindo os listeners
-      const novaLinha = inserirNaTabela(item, quantidade, preco, total, mesAno, docId);
-      tabelaHistoricoBody.replaceChild(novaLinha, linha);
+    infoLinha.append(inputNome, editRow);
+
+    const editActions = document.createElement('div');
+    editActions.className = 'controles-item';
+    editActions.style.marginTop = '12px';
+
+    const btnSalvar = document.createElement('button');
+    btnSalvar.className = 'botao botao-pequeno botao-primario';
+    btnSalvar.innerText = 'Salvar';
+
+    const btnCancelar = document.createElement('button');
+    btnCancelar.className = 'botao botao-pequeno botao-contorno';
+    btnCancelar.innerText = 'Cancelar';
+
+    editActions.append(btnSalvar, btnCancelar);
+    actions.innerHTML = '';
+    actions.appendChild(editActions);
+
+    btnCancelar.addEventListener('click', (e) => {
+      e.stopPropagation();
+      detalhes.classList.remove('modo-edicao');
+      card.replaceWith(inserirNaTabela(item, quantidade, preco, total, mesAno, docId));
     });
 
-    btnSalvarEdicao.addEventListener('click', async () => {
-      const novoItem = itemCell.querySelector('input').value.trim();
-      const novaQuantidade = parseInt(quantidadeCell.querySelector('input').value, 10);
-      const novoPreco = parseFloat(precoCell.querySelector('input').value.replace(',', '.'));
+    btnSalvar.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const novoItem = inputNome.value.trim();
+      const novaQtd = parseInt(inputQtd.value, 10);
+      const novoPreco = parseFloat(inputPreco.value.replace(',', '.'));
 
       if (!novoItem) {
         mostrarToast('O nome do item não pode ficar vazio.', 'aviso');
         return;
       }
-      if (!novaQuantidade || novaQuantidade <= 0 || !novoPreco || novoPreco <= 0) {
+      if (!novaQtd || novaQtd <= 0 || !novoPreco || novoPreco <= 0) {
         mostrarToast('Insira valores válidos para quantidade e preço.', 'aviso');
         return;
       }
 
-      const novoTotal = novaQuantidade * novoPreco;
+      const novoTotal = novaQtd * novoPreco;
 
       try {
-        // 1. Atualiza no Firebase
         await updateDoc(doc(db, "compras", docId), {
           item: novoItem,
-          quantidade: novaQuantidade,
+          quantidade: novaQtd,
           preco: novoPreco,
           total: novoTotal
         });
 
-        // 2. Atualiza a linha na tela sem recarregar tudo
-        const novaLinha = inserirNaTabela(novoItem, novaQuantidade, novoPreco, novoTotal, mesAno, docId);
-        tabelaHistoricoBody.replaceChild(novaLinha, linha);
+        const novoCard = inserirNaTabela(novoItem, novaQtd, novoPreco, novoTotal, mesAno, docId);
+        card.replaceWith(novoCard);
 
-        // 3. Atualiza o total do mês e o histórico local
         const itemAntigo = historico[mesAno]?.find(i => i.id === docId);
         if (itemAntigo) {
           itemAntigo.item = novoItem;
-          itemAntigo.quantidade = novaQuantidade;
+          itemAntigo.quantidade = novaQtd;
           itemAntigo.preco = novoPreco;
           itemAntigo.total = novoTotal;
         }
         atualizarTotalMes(mesAno);
+        mostrarToast('Item atualizado com sucesso.', 'sucesso');
 
       } catch (error) {
         tratarErroFirebase(error, "Não foi possível salvar a edição.");
-        // Em caso de erro, restaura a linha original
-        const linhaOriginal = inserirNaTabela(item, quantidade, preco, total, mesAno, docId);
-        tabelaHistoricoBody.replaceChild(linhaOriginal, linha);
+        card.replaceWith(inserirNaTabela(item, quantidade, preco, total, mesAno, docId));
       }
     });
   });
 
-  cellAcoes.append(btnEditar, btnReutilizar, btnRemover);
-  return linha; // Retorna a linha criada
+  const btnRemover = document.createElement('button');
+  btnRemover.className = 'botao botao-pequeno botao-perigo';
+  btnRemover.innerText = 'Remover';
+  btnRemover.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    if (await confirmarAcao('Remover do histórico', `Deseja remover "${nomeAtual}" do seu histórico de compras?`, 'perigo')) {
+      await removerDoHistorico(nomeAtual, quantidade, preco, total, mesAno, docId);
+      card.remove();
+      atualizarTotalMes(mesAno);
+      mostrarToast(`"${nomeAtual}" removido do histórico.`, 'sucesso');
+    }
+  });
+
+  actions.append(btnReutilizar, btnEditar, btnRemover);
+  detalhes.append(infoLinha, actions);
+
+  topo.addEventListener('click', (e) => {
+    if (e.target.closest('button') || e.target.closest('input')) return;
+    card.classList.toggle('expandido');
+  });
+
+  card.append(topo, detalhes);
+  listaHistorico.appendChild(card);
+  return card;
 }
 
 async function removerDoHistorico(item, quantidade, preco, total, mesAno, docId = null) {
@@ -550,7 +633,7 @@ async function limparHistoricoFirebaseTudo() {
   } catch (error) { tratarErroFirebase(error, 'Erro ao limpar tudo.'); }
 }
 
-function limparTabelaDaTela() { tabelaHistoricoBody.innerHTML = ''; }
+function limparTabelaDaTela() { listaHistorico.innerHTML = ''; }
 
 async function reutilizarTodosDoMes(mesAno) {
   if (historico[mesAno] && historico[mesAno].length > 0) {
