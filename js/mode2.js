@@ -178,9 +178,12 @@ async function adicionarItem() {
 
 function renderizarItem({ id, item }) {
   const li = document.createElement('li');
+
+  let nomeAtual = item;
+
   const nomeSpan = document.createElement('span');
   nomeSpan.className = 'nome-item';
-  nomeSpan.innerText = item;
+  nomeSpan.innerText = nomeAtual;
 
   const inputQuantidade = document.createElement('input');
   inputQuantidade.type = 'number';
@@ -199,19 +202,23 @@ function renderizarItem({ id, item }) {
   botaoSalvar.className = 'botao botao-pequeno botao-primario';
   botaoSalvar.innerText = 'Salvar';
 
+  const botaoEditar = document.createElement('button');
+  botaoEditar.className = 'botao botao-pequeno botao-contorno';
+  botaoEditar.innerText = 'Editar';
+
   const botaoRemover = document.createElement('button');
   botaoRemover.className = 'botao botao-pequeno botao-perigo';
   botaoRemover.innerText = 'Remover';
 
   const actions = document.createElement('div');
   actions.className = 'controles-item';
-  actions.append(botaoSalvar, botaoRemover);
+  actions.append(botaoSalvar, botaoEditar, botaoRemover);
 
   const erroListaLocal = document.createElement('div');
   erroListaLocal.className = 'erro-input';
 
   botaoRemover.addEventListener('click', async () => {
-    if (confirm(`Deseja remover "${item}" da lista?`)) {
+    if (confirm(`Deseja remover "${nomeAtual}" da lista?`)) {
       await removerListaPendenteFirebase(id);
       listaCompras = listaCompras.filter(itemObj => itemObj.id !== id);
       li.remove();
@@ -231,13 +238,71 @@ function renderizarItem({ id, item }) {
     }
 
     const total = quantidade * preco;
-    const docId = await salvarHistoricoFirebase(item, quantidade, preco, total, mesAnoAtual);
+    const docId = await salvarHistoricoFirebase(nomeAtual, quantidade, preco, total, mesAnoAtual);
     if (!docId) return;
 
     await removerListaPendenteFirebase(id);
     listaCompras = listaCompras.filter(itemObj => itemObj.id !== id);
     li.remove();
     await carregarHistoricoMes(mesAnoAtual);
+  });
+
+  botaoEditar.addEventListener('click', () => {
+    const inputNome = document.createElement('input');
+    inputNome.type = 'text';
+    inputNome.value = nomeAtual;
+    inputNome.className = 'entrada-item';
+    inputNome.style.width = '100%';
+
+    nomeSpan.replaceWith(inputNome);
+
+    const btnSalvarEdicao = document.createElement('button');
+    btnSalvarEdicao.className = 'botao botao-pequeno botao-primario';
+    btnSalvarEdicao.innerText = 'Salvar';
+
+    const btnCancelarEdicao = document.createElement('button');
+    btnCancelarEdicao.className = 'botao botao-pequeno botao-contorno';
+    btnCancelarEdicao.innerText = 'Cancelar';
+
+    actions.innerHTML = '';
+    actions.append(btnSalvarEdicao, btnCancelarEdicao);
+
+    btnCancelarEdicao.addEventListener('click', () => {
+      inputNome.replaceWith(nomeSpan);
+      actions.innerHTML = '';
+      actions.append(botaoSalvar, botaoEditar, botaoRemover);
+    });
+
+    btnSalvarEdicao.addEventListener('click', async () => {
+      const novoNome = inputNome.value.trim();
+      if (!novoNome) {
+        alert('O nome do item não pode ficar vazio.');
+        return;
+      }
+      if (novoNome === nomeAtual) {
+        inputNome.replaceWith(nomeSpan);
+        actions.innerHTML = '';
+        actions.append(botaoSalvar, botaoEditar, botaoRemover);
+        return;
+      }
+      if (listaCompras.some(obj => obj.item === novoNome && obj.id !== id)) {
+        alert('Este item já está na lista.');
+        return;
+      }
+
+      const ok = await atualizarListaPendenteFirebase(id, novoNome);
+      if (!ok) return;
+
+      nomeAtual = novoNome;
+      nomeSpan.innerText = nomeAtual;
+      inputNome.replaceWith(nomeSpan);
+
+      const idx = listaCompras.findIndex(obj => obj.id === id);
+      if (idx !== -1) listaCompras[idx].item = novoNome;
+
+      actions.innerHTML = '';
+      actions.append(botaoSalvar, botaoEditar, botaoRemover);
+    });
   });
 
   li.append(nomeSpan, inputQuantidade, inputPreco, actions);
@@ -286,6 +351,7 @@ function inserirNaTabela(item, quantidade, preco, total, mesAno, docId = null) {
   });
 
   btnEditar.addEventListener('click', () => {
+    itemCell.innerHTML = `<input type="text" class="entrada-item-tabela" value="${item}">`;
     quantidadeCell.innerHTML = `<input type="number" class="entrada-item-tabela" value="${quantidade}" min="1">`;
     precoCell.innerHTML = `<input type="number" class="entrada-item-tabela" value="${preco}" min="0.01" step="0.01">`;
 
@@ -308,9 +374,14 @@ function inserirNaTabela(item, quantidade, preco, total, mesAno, docId = null) {
     });
 
     btnSalvarEdicao.addEventListener('click', async () => {
+      const novoItem = itemCell.querySelector('input').value.trim();
       const novaQuantidade = parseInt(quantidadeCell.querySelector('input').value, 10);
       const novoPreco = parseFloat(precoCell.querySelector('input').value.replace(',', '.'));
 
+      if (!novoItem) {
+        alert('O nome do item não pode ficar vazio.');
+        return;
+      }
       if (!novaQuantidade || novaQuantidade <= 0 || !novoPreco || novoPreco <= 0) {
         alert('Por favor, insira valores válidos para quantidade e preço.');
         return;
@@ -321,18 +392,20 @@ function inserirNaTabela(item, quantidade, preco, total, mesAno, docId = null) {
       try {
         // 1. Atualiza no Firebase
         await updateDoc(doc(db, "compras", docId), {
+          item: novoItem,
           quantidade: novaQuantidade,
           preco: novoPreco,
           total: novoTotal
         });
 
         // 2. Atualiza a linha na tela sem recarregar tudo
-        const novaLinha = inserirNaTabela(item, novaQuantidade, novoPreco, novoTotal, mesAno, docId);
+        const novaLinha = inserirNaTabela(novoItem, novaQuantidade, novoPreco, novoTotal, mesAno, docId);
         tabelaHistoricoBody.replaceChild(novaLinha, linha);
 
-        // 3. Atualiza o total do mês silenciosamente
+        // 3. Atualiza o total do mês e o histórico local
         const itemAntigo = historico[mesAno]?.find(i => i.id === docId);
         if (itemAntigo) {
+          itemAntigo.item = novoItem;
           itemAntigo.quantidade = novaQuantidade;
           itemAntigo.preco = novoPreco;
           itemAntigo.total = novoTotal;
@@ -480,6 +553,16 @@ async function salvarListaPendenteFirebase(item) {
   } catch (error) {
     tratarErroFirebase(error, 'Erro ao salvar o item.');
     return null;
+  }
+}
+
+async function atualizarListaPendenteFirebase(docId, novoNome) {
+  try {
+    await updateDoc(doc(db, 'listaPendentes', docId), { item: novoNome });
+    return true;
+  } catch (error) {
+    tratarErroFirebase(error, 'Erro ao atualizar o item.');
+    return false;
   }
 }
 
