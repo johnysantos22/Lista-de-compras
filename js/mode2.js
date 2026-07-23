@@ -44,7 +44,41 @@ const formatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 
 
 let listaCompras = [];
 let historico = {};
-let firestoreDisponivel = true;
+let firestoreDisponivel = false;
+
+// ==========================================
+// LOCALSTORAGE HELPERS
+// ==========================================
+
+function gerarIdLocal() {
+  return 'loc_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+}
+
+function salvarPendentesLocal() {
+  try {
+    localStorage.setItem('superlista_pendentes', JSON.stringify(listaCompras));
+  } catch (e) { /* ignore quota errors */ }
+}
+
+function carregarPendentesLocal() {
+  try {
+    const data = localStorage.getItem('superlista_pendentes');
+    return data ? JSON.parse(data) : [];
+  } catch (e) { return []; }
+}
+
+function salvarHistoricoLocal() {
+  try {
+    localStorage.setItem('superlista_historico', JSON.stringify(historico));
+  } catch (e) { /* ignore quota errors */ }
+}
+
+function carregarHistoricoLocal() {
+  try {
+    const data = localStorage.getItem('superlista_historico');
+    return data ? JSON.parse(data) : {};
+  } catch (e) { return {}; }
+}
 
 // ==========================================
 // MODAL DE CONFIRMAÇÃO
@@ -103,18 +137,15 @@ onAuthStateChanged(auth, async (user) => {
     btnLogin.style.display = 'none';
     btnLogout.style.display = 'inline-block';
 
-    // Oculta o aviso e mostra o aplicativo
     telaLoginAviso.style.display = 'none';
     conteudoApp.style.display = '';
     iniciarApp();
   } else {
-    // DESLOGADO
     currentUser = null;
     nomeUsuario.innerText = '';
     btnLogin.style.display = 'inline-block';
     btnLogout.style.display = 'none';
 
-    // Oculta o app e mostra o aviso para logar
     telaLoginAviso.style.display = 'block';
     conteudoApp.style.display = 'none';
 
@@ -128,21 +159,12 @@ btnLogin.addEventListener('click', () => signInWithPopup(auth, provider));
 btnLogout.addEventListener('click', () => signOut(auth));
 
 // ==========================================
-// LÓGICA DO APLICATIVO E BANCO DE DADOS
+// LÓGICA DO APLICATIVO
 // ==========================================
-
-function marcarFirebaseIndisponivel() {
-  firestoreDisponivel = false;
-  if (erroLista) erroLista.innerText = 'Conexão com Firebase indisponível.';
-  btnAdicionar.disabled = true;
-  btnMostrarHistoricoPorMes.disabled = true;
-  btnLimparTudo.disabled = true;
-}
 
 function tratarErroFirebase(error, mensagemUsuario) {
   console.error('Firebase error:', error);
   mostrarToast(`${mensagemUsuario} Detalhe: ${error?.message || 'erro desconhecido.'}`, 'erro');
-  marcarFirebaseIndisponivel();
 }
 
 btnAdicionar.addEventListener('click', adicionarItem);
@@ -150,9 +172,12 @@ entradaItem.addEventListener('keydown', event => { if (event.key === 'Enter') ad
 btnMostrarHistoricoPorMes.addEventListener('click', mostrarHistoricoPorMes);
 btnLimparTudo.addEventListener('click', async () => {
   if (await confirmarAcao('Limpar histórico', 'Tem certeza que deseja apagar todo o histórico de compras? Esta ação não pode ser desfeita.', 'perigo')) {
-    await limparHistoricoFirebaseTudo();
     historico = {};
-    await carregarHistoricoMes(mesAnoAtual);
+    salvarHistoricoLocal();
+    limparTabelaDaTela();
+    if (firestoreDisponivel) {
+      try { await limparHistoricoFirebaseTudo(); } catch (e) { /* already handled */ }
+    }
     janelaHistorico.style.display = 'none';
     mostrarToast('Histórico limpo com sucesso.', 'sucesso');
   }
@@ -162,7 +187,6 @@ janelaHistorico.addEventListener('click', event => { if (event.target === janela
 
 async function iniciarApp() {
   await verificarConexaoFirebase();
-  if (!firestoreDisponivel) return;
   await carregarHistoricoMes(mesAnoAtual);
   await carregarListaCompras();
 }
@@ -173,36 +197,72 @@ async function verificarConexaoFirebase() {
     await getDocsFromServer(comprasQuery);
     firestoreDisponivel = true;
   } catch (error) {
-    tratarErroFirebase(error, 'Não foi possível conectar ao Firestore.');
+    console.warn('Firebase indisponível, usando armazenamento local.', error?.message);
+    firestoreDisponivel = false;
   }
 }
 
 async function carregarHistoricoMes(mesAno) {
   historico = {};
   limparTabelaDaTela();
-  try {
-    const comprasQuery = query(collection(db, 'compras'), where('mesAno', '==', mesAno), where('userId', '==', currentUser.uid));
-    const querySnapshot = await getDocs(comprasQuery);
-    querySnapshot.forEach(docSnap => {
-      const data = docSnap.data();
-      if (!historico[mesAno]) historico[mesAno] = [];
-      historico[mesAno].push({ id: docSnap.id, ...data });
-      inserirNaTabela(data.item, data.quantidade, data.preco, data.total, mesAno, docSnap.id);
-    });
-  } catch (error) { tratarErroFirebase(error, 'Não foi carregar o histórico.'); }
+
+  if (firestoreDisponivel) {
+    try {
+      const comprasQuery = query(collection(db, 'compras'), where('mesAno', '==', mesAno), where('userId', '==', currentUser.uid));
+      const querySnapshot = await getDocs(comprasQuery);
+      querySnapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        if (!historico[mesAno]) historico[mesAno] = [];
+        historico[mesAno].push({ id: docSnap.id, ...data });
+      });
+
+      const localData = carregarHistoricoLocal();
+      for (const mes in localData) {
+        if (mes === mesAno) continue;
+        if (!historico[mes]) historico[mes] = [];
+        for (const item of localData[mes]) {
+          if (!historico[mes].some(i => i.item === item.item && i.mesAno === item.mesAno)) {
+            historico[mes].push(item);
+          }
+        }
+      }
+
+      salvarHistoricoLocal();
+    } catch (error) {
+      tratarErroFirebase(error, 'Não foi possível carregar o histórico do servidor.');
+      const localData = carregarHistoricoLocal();
+      historico = localData;
+    }
+  } else {
+    const localData = carregarHistoricoLocal();
+    historico = localData;
+  }
+
+  if (historico[mesAno]) {
+    for (const item of historico[mesAno]) {
+      inserirNaTabela(item.item, item.quantidade, item.preco, item.total, mesAno, item.id);
+    }
+  }
+
   atualizarTotalMes(mesAno);
   adicionarBotaoReutilizarTodos(mesAno);
 }
 
 async function carregarListaCompras() {
-  try {
-    const pendentesQuery = query(collection(db, 'listaPendentes'), where('userId', '==', currentUser.uid));
-    const snapshot = await getDocs(pendentesQuery);
-    listaCompras = snapshot.docs.map(docSnap => ({ id: docSnap.id, item: docSnap.data().item }));
-  } catch (error) {
-    tratarErroFirebase(error, 'Não foi possível carregar a lista.');
-    listaCompras = [];
+  if (firestoreDisponivel) {
+    try {
+      const pendentesQuery = query(collection(db, 'listaPendentes'), where('userId', '==', currentUser.uid));
+      const snapshot = await getDocs(pendentesQuery);
+      listaCompras = snapshot.docs.map(docSnap => ({ id: docSnap.id, item: docSnap.data().item }));
+      salvarPendentesLocal();
+    } catch (error) {
+      tratarErroFirebase(error, 'Não foi possível carregar a lista do servidor.');
+      listaCompras = carregarPendentesLocal();
+    }
+  } else {
+    listaCompras = carregarPendentesLocal();
   }
+
   listaPendentesUL.innerHTML = '';
   listaCompras.forEach(itemObj => renderizarItem(itemObj));
 }
@@ -210,17 +270,25 @@ async function carregarListaCompras() {
 async function adicionarItem() {
   const valor = entradaItem.value.trim();
   erroLista.innerText = '';
-  if (!firestoreDisponivel) { mostrarToast('Firebase indisponível.', 'erro'); return; }
   if (!valor) { erroLista.innerText = 'O nome do item é obrigatório.'; return; }
   if (listaCompras.some(itemObj => itemObj.item === valor)) { erroLista.innerText = 'Este item já está na lista.'; return; }
 
-  const docRef = await salvarListaPendenteFirebase(valor);
-  if (!docRef) return;
-
-  const itemObj = { id: docRef.id, item: valor };
-  listaCompras.push(itemObj);
-  renderizarItem(itemObj);
-  entradaItem.value = '';
+  if (firestoreDisponivel) {
+    const docRef = await salvarListaPendenteFirebase(valor);
+    if (docRef) {
+      const itemObj = { id: docRef.id, item: valor };
+      listaCompras.push(itemObj);
+      salvarPendentesLocal();
+      renderizarItem(itemObj);
+      entradaItem.value = '';
+    }
+  } else {
+    const itemObj = { id: gerarIdLocal(), item: valor };
+    listaCompras.push(itemObj);
+    salvarPendentesLocal();
+    renderizarItem(itemObj);
+    entradaItem.value = '';
+  }
 }
 
 function renderizarItem({ id, item }) {
@@ -291,15 +359,17 @@ function renderizarItem({ id, item }) {
 
   botaoRemover.addEventListener('click', async () => {
     if (await confirmarAcao('Remover item', `Deseja remover "${nomeAtual}" da sua lista?`, 'perigo')) {
-      await removerListaPendenteFirebase(id);
+      if (firestoreDisponivel) {
+        try { await removerListaPendenteFirebase(id); } catch (e) { /* proceed anyway */ }
+      }
       listaCompras = listaCompras.filter(itemObj => itemObj.id !== id);
+      salvarPendentesLocal();
       li.remove();
       mostrarToast(`"${nomeAtual}" removido da lista.`, 'sucesso');
     }
   });
 
   botaoSalvar.addEventListener('click', async () => {
-    if (!firestoreDisponivel) return;
     erroListaLocal.innerText = '';
     const quantidade = parseInt(inputQuantidade.value, 10);
     const preco = parseFloat(inputPreco.value.replace(',', '.'));
@@ -310,14 +380,41 @@ function renderizarItem({ id, item }) {
     }
 
     const total = quantidade * preco;
-    const docId = await salvarHistoricoFirebase(nomeAtual, quantidade, preco, total, mesAnoAtual);
-    if (!docId) return;
 
-    await removerListaPendenteFirebase(id);
-    listaCompras = listaCompras.filter(itemObj => itemObj.id !== id);
-    li.remove();
-    await carregarHistoricoMes(mesAnoAtual);
-    mostrarToast(`"${nomeAtual}" salvo no histórico!`, 'sucesso');
+    if (firestoreDisponivel) {
+      const docId = await salvarHistoricoFirebase(nomeAtual, quantidade, preco, total, mesAnoAtual);
+      if (docId) {
+        if (!historico[mesAnoAtual]) historico[mesAnoAtual] = [];
+        historico[mesAnoAtual].push({ id: docId, item: nomeAtual, quantidade, preco, total, mesAno: mesAnoAtual });
+        salvarHistoricoLocal();
+
+        try { await removerListaPendenteFirebase(id); } catch (e) { /* proceed */ }
+        listaCompras = listaCompras.filter(itemObj => itemObj.id !== id);
+        salvarPendentesLocal();
+        li.remove();
+        limparTabelaDaTela();
+        for (const item of historico[mesAnoAtual]) {
+          inserirNaTabela(item.item, item.quantidade, item.preco, item.total, mesAnoAtual, item.id);
+        }
+        atualizarTotalMes(mesAnoAtual);
+        mostrarToast(`"${nomeAtual}" salvo no histórico!`, 'sucesso');
+      }
+    } else {
+      const localId = gerarIdLocal();
+      if (!historico[mesAnoAtual]) historico[mesAnoAtual] = [];
+      historico[mesAnoAtual].push({ id: localId, item: nomeAtual, quantidade, preco, total, mesAno: mesAnoAtual });
+      salvarHistoricoLocal();
+
+      listaCompras = listaCompras.filter(itemObj => itemObj.id !== id);
+      salvarPendentesLocal();
+      li.remove();
+      limparTabelaDaTela();
+      for (const item of historico[mesAnoAtual]) {
+        inserirNaTabela(item.item, item.quantidade, item.preco, item.total, mesAnoAtual, item.id);
+      }
+      atualizarTotalMes(mesAnoAtual);
+      mostrarToast(`"${nomeAtual}" salvo no histórico!`, 'sucesso');
+    }
   });
 
   botaoEditar.addEventListener('click', () => {
@@ -364,8 +461,10 @@ function renderizarItem({ id, item }) {
         return;
       }
 
-      const ok = await atualizarListaPendenteFirebase(id, novoNome);
-      if (!ok) return;
+      if (firestoreDisponivel && !id.startsWith('loc_')) {
+        const ok = await atualizarListaPendenteFirebase(id, novoNome);
+        if (!ok) return;
+      }
 
       nomeAtual = novoNome;
       nomeSpan.innerText = nomeAtual;
@@ -373,6 +472,7 @@ function renderizarItem({ id, item }) {
 
       const idx = listaCompras.findIndex(obj => obj.id === id);
       if (idx !== -1) listaCompras[idx].item = novoNome;
+      salvarPendentesLocal();
 
       actions.innerHTML = '';
       actions.append(botaoSalvar, botaoEditar, botaoRemover);
@@ -409,10 +509,25 @@ function inserirNaTabela(item, quantidade, preco, total, mesAno, docId = null) {
   seta.className = 'seta-expandir';
   seta.textContent = '▼';
 
-  topo.append(nomeSpan, valorSpan, mesSpan, seta);
+  topo.append(nomeSpan, seta);
 
   const detalhes = document.createElement('div');
   detalhes.className = 'card-historico-detalhes';
+
+  const infoResumo = document.createElement('div');
+  infoResumo.className = 'detalhe-linha';
+
+  const wrapValor = document.createElement('div');
+  wrapValor.className = 'detalhe-item';
+  wrapValor.innerHTML = `<span>Total</span>`;
+  wrapValor.appendChild(valorSpan);
+
+  const wrapMes = document.createElement('div');
+  wrapMes.className = 'detalhe-item';
+  wrapMes.innerHTML = `<span>Mês</span>`;
+  wrapMes.appendChild(mesSpan);
+
+  infoResumo.append(wrapValor, wrapMes);
 
   const infoLinha = document.createElement('div');
   infoLinha.className = 'detalhe-linha';
@@ -436,12 +551,19 @@ function inserirNaTabela(item, quantidade, preco, total, mesAno, docId = null) {
   btnReutilizar.addEventListener('click', async (e) => {
     e.stopPropagation();
     if (!listaCompras.some(obj => obj.item === nomeAtual)) {
-      const docRef = await salvarListaPendenteFirebase(nomeAtual);
-      if (docRef) {
-        listaCompras.push({ id: docRef.id, item: nomeAtual });
-        carregarListaCompras();
-        mostrarToast(`"${nomeAtual}" adicionado à lista.`, 'sucesso');
+      if (firestoreDisponivel) {
+        const docRef = await salvarListaPendenteFirebase(nomeAtual);
+        if (docRef) {
+          listaCompras.push({ id: docRef.id, item: nomeAtual });
+        } else {
+          return;
+        }
+      } else {
+        listaCompras.push({ id: gerarIdLocal(), item: nomeAtual });
       }
+      salvarPendentesLocal();
+      await carregarListaCompras();
+      mostrarToast(`"${nomeAtual}" adicionado à lista.`, 'sucesso');
     } else {
       mostrarToast(`"${nomeAtual}" já está na lista.`, 'aviso');
     }
@@ -530,31 +652,32 @@ function inserirNaTabela(item, quantidade, preco, total, mesAno, docId = null) {
 
       const novoTotal = novaQtd * novoPreco;
 
-      try {
-        await updateDoc(doc(db, "compras", docId), {
-          item: novoItem,
-          quantidade: novaQtd,
-          preco: novoPreco,
-          total: novoTotal
-        });
-
-        const novoCard = inserirNaTabela(novoItem, novaQtd, novoPreco, novoTotal, mesAno, docId);
-        card.replaceWith(novoCard);
-
-        const itemAntigo = historico[mesAno]?.find(i => i.id === docId);
-        if (itemAntigo) {
-          itemAntigo.item = novoItem;
-          itemAntigo.quantidade = novaQtd;
-          itemAntigo.preco = novoPreco;
-          itemAntigo.total = novoTotal;
+      if (firestoreDisponivel && docId && !docId.startsWith('loc_')) {
+        try {
+          await updateDoc(doc(db, "compras", docId), {
+            item: novoItem,
+            quantidade: novaQtd,
+            preco: novoPreco,
+            total: novoTotal
+          });
+        } catch (error) {
+          tratarErroFirebase(error, "Não foi possível salvar a edição no servidor.");
         }
-        atualizarTotalMes(mesAno);
-        mostrarToast('Item atualizado com sucesso.', 'sucesso');
-
-      } catch (error) {
-        tratarErroFirebase(error, "Não foi possível salvar a edição.");
-        card.replaceWith(inserirNaTabela(item, quantidade, preco, total, mesAno, docId));
       }
+
+      const itemHistorico = historico[mesAno]?.find(i => i.id === docId);
+      if (itemHistorico) {
+        itemHistorico.item = novoItem;
+        itemHistorico.quantidade = novaQtd;
+        itemHistorico.preco = novoPreco;
+        itemHistorico.total = novoTotal;
+      }
+      salvarHistoricoLocal();
+
+      const novoCard = inserirNaTabela(novoItem, novaQtd, novoPreco, novoTotal, mesAno, docId);
+      card.replaceWith(novoCard);
+      atualizarTotalMes(mesAno);
+      mostrarToast('Item atualizado com sucesso.', 'sucesso');
     });
   });
 
@@ -564,7 +687,14 @@ function inserirNaTabela(item, quantidade, preco, total, mesAno, docId = null) {
   btnRemover.addEventListener('click', async (e) => {
     e.stopPropagation();
     if (await confirmarAcao('Remover do histórico', `Deseja remover "${nomeAtual}" do seu histórico de compras?`, 'perigo')) {
-      await removerDoHistorico(nomeAtual, quantidade, preco, total, mesAno, docId);
+      if (firestoreDisponivel && docId && !docId.startsWith('loc_')) {
+        try { await removerHistoricoFirebase(docId); } catch (e) { /* proceed */ }
+      }
+      if (historico[mesAno]) {
+        historico[mesAno] = historico[mesAno].filter(i => i.id !== docId);
+        if (historico[mesAno].length === 0) delete historico[mesAno];
+      }
+      salvarHistoricoLocal();
       card.remove();
       atualizarTotalMes(mesAno);
       mostrarToast(`"${nomeAtual}" removido do histórico.`, 'sucesso');
@@ -572,7 +702,7 @@ function inserirNaTabela(item, quantidade, preco, total, mesAno, docId = null) {
   });
 
   actions.append(btnReutilizar, btnEditar, btnRemover);
-  detalhes.append(infoLinha, actions);
+  detalhes.append(infoResumo, infoLinha, actions);
 
   topo.addEventListener('click', (e) => {
     if (e.target.closest('button') || e.target.closest('input')) return;
@@ -582,16 +712,6 @@ function inserirNaTabela(item, quantidade, preco, total, mesAno, docId = null) {
   card.append(topo, detalhes);
   listaHistorico.appendChild(card);
   return card;
-}
-
-async function removerDoHistorico(item, quantidade, preco, total, mesAno, docId = null) {
-  if (docId) {
-    await removerHistoricoFirebase(docId);
-    if (historico[mesAno]) {
-      historico[mesAno] = historico[mesAno].filter(i => i.id !== docId);
-      if (historico[mesAno].length === 0) delete historico[mesAno];
-    }
-  }
 }
 
 function atualizarTotalMes(mesAno) {
@@ -608,29 +728,21 @@ async function salvarHistoricoFirebase(item, quantidade, preco, total, mesAno) {
     });
     return docRef.id;
   } catch (error) {
-    tratarErroFirebase(error, 'Não foi possível salvar o histórico.');
+    tratarErroFirebase(error, 'Não foi possível salvar o histórico no servidor.');
     return null;
   }
 }
 
 async function removerHistoricoFirebase(docId) {
   try { await deleteDoc(doc(db, 'compras', docId)); }
-  catch (error) { tratarErroFirebase(error, 'Erro ao remover.'); }
-}
-
-async function limparHistoricoFirebaseMes(mesAno) {
-  try {
-    const comprasQuery = query(collection(db, 'compras'), where('mesAno', '==', mesAno), where('userId', '==', currentUser.uid));
-    const snapshot = await getDocs(comprasQuery);
-    for (const docSnap of snapshot.docs) await deleteDoc(doc(db, 'compras', docSnap.id));
-  } catch (error) { tratarErroFirebase(error, 'Erro ao limpar.'); }
+  catch (error) { tratarErroFirebase(error, 'Erro ao remover do servidor.'); }
 }
 
 async function limparHistoricoFirebaseTudo() {
   try {
     const snapshot = await getDocs(query(collection(db, 'compras'), where('userId', '==', currentUser.uid)));
     for (const docSnap of snapshot.docs) await deleteDoc(doc(db, 'compras', docSnap.id));
-  } catch (error) { tratarErroFirebase(error, 'Erro ao limpar tudo.'); }
+  } catch (error) { tratarErroFirebase(error, 'Erro ao limpar no servidor.'); }
 }
 
 function limparTabelaDaTela() { listaHistorico.innerHTML = ''; }
@@ -639,10 +751,15 @@ async function reutilizarTodosDoMes(mesAno) {
   if (historico[mesAno] && historico[mesAno].length > 0) {
     for (const { item } of historico[mesAno]) {
       if (!listaCompras.some(itemObj => itemObj.item === item)) {
-        const docRef = await salvarListaPendenteFirebase(item);
-        if (docRef) listaCompras.push({ id: docRef.id, item });
+        if (firestoreDisponivel) {
+          const docRef = await salvarListaPendenteFirebase(item);
+          if (docRef) listaCompras.push({ id: docRef.id, item });
+        } else {
+          listaCompras.push({ id: gerarIdLocal(), item });
+        }
       }
     }
+    salvarPendentesLocal();
     await carregarListaCompras();
     mostrarToast('Itens adicionados de volta à lista!', 'sucesso');
   }
@@ -661,26 +778,40 @@ function adicionarBotaoReutilizarTodos(mesAno) {
 }
 
 async function mostrarHistoricoPorMes() {
-  try {
-    const snapshot = await getDocs(query(collection(db, 'compras'), where('userId', '==', currentUser.uid)));
-    if (snapshot.empty) {
-      conteudoHistorico.innerText = 'Nenhum histórico encontrado.';
-      containerBotoes.innerHTML = '';
-    } else {
-      const totaisPorMes = {};
+  let todosItens = [];
+
+  if (firestoreDisponivel) {
+    try {
+      const snapshot = await getDocs(query(collection(db, 'compras'), where('userId', '==', currentUser.uid)));
       snapshot.forEach(docSnap => {
         const data = docSnap.data();
-        totaisPorMes[data.mesAno] = (totaisPorMes[data.mesAno] || 0) + data.total;
+        todosItens.push(data);
       });
-      let texto = 'Gastos por mês:\n\n';
-      for (const mes in totaisPorMes) texto += `${mes}: ${formatter.format(totaisPorMes[mes])}\n`;
-      conteudoHistorico.innerText = texto;
-      criarBotoesLimpar(totaisPorMes);
+    } catch (error) {
+      tratarErroFirebase(error, 'Erro ao buscar o histórico.');
     }
-  } catch (error) {
-    tratarErroFirebase(error, 'Erro ao buscar o histórico.');
-    conteudoHistorico.innerText = 'Erro ao carregar.';
+  }
+
+  for (const mes in historico) {
+    for (const item of historico[mes]) {
+      if (!todosItens.some(t => t.item === item.item && t.mesAno === item.mesAno && t.total === item.total)) {
+        todosItens.push(item);
+      }
+    }
+  }
+
+  if (todosItens.length === 0) {
+    conteudoHistorico.innerText = 'Nenhum histórico encontrado.';
     containerBotoes.innerHTML = '';
+  } else {
+    const totaisPorMes = {};
+    todosItens.forEach(data => {
+      totaisPorMes[data.mesAno] = (totaisPorMes[data.mesAno] || 0) + data.total;
+    });
+    let texto = 'Gastos por mês:\n\n';
+    for (const mes in totaisPorMes) texto += `${mes}: ${formatter.format(totaisPorMes[mes])}\n`;
+    conteudoHistorico.innerText = texto;
+    criarBotoesLimpar(totaisPorMes);
   }
   janelaHistorico.style.display = 'flex';
 }
@@ -693,7 +824,11 @@ function criarBotoesLimpar(totaisPorMes = {}) {
     btn.innerText = `Limpar ${mes}`;
     btn.addEventListener('click', async () => {
       if (await confirmarAcao('Limpar mês', `Deseja apagar todo o histórico de ${mes}? Esta ação não pode ser desfeita.`, 'perigo')) {
-        await limparHistoricoFirebaseMes(mes);
+        if (firestoreDisponivel) {
+          try { await limparHistoricoFirebaseMes(mes); } catch (e) { /* proceed */ }
+        }
+        delete historico[mes];
+        salvarHistoricoLocal();
         await carregarHistoricoMes(mesAnoAtual);
         janelaHistorico.style.display = 'none';
         mostrarToast(`Histórico de ${mes} limpo.`, 'sucesso');
@@ -701,6 +836,14 @@ function criarBotoesLimpar(totaisPorMes = {}) {
     });
     containerBotoes.appendChild(btn);
   }
+}
+
+async function limparHistoricoFirebaseMes(mesAno) {
+  try {
+    const comprasQuery = query(collection(db, 'compras'), where('mesAno', '==', mesAno), where('userId', '==', currentUser.uid));
+    const snapshot = await getDocs(comprasQuery);
+    for (const docSnap of snapshot.docs) await deleteDoc(doc(db, 'compras', docSnap.id));
+  } catch (error) { tratarErroFirebase(error, 'Erro ao limpar no servidor.'); }
 }
 
 async function salvarListaPendenteFirebase(item) {
@@ -711,7 +854,7 @@ async function salvarListaPendenteFirebase(item) {
       criadoEm: serverTimestamp()
     });
   } catch (error) {
-    tratarErroFirebase(error, 'Erro ao salvar o item.');
+    tratarErroFirebase(error, 'Erro ao salvar o item no servidor.');
     return null;
   }
 }
@@ -721,12 +864,12 @@ async function atualizarListaPendenteFirebase(docId, novoNome) {
     await updateDoc(doc(db, 'listaPendentes', docId), { item: novoNome });
     return true;
   } catch (error) {
-    tratarErroFirebase(error, 'Erro ao atualizar o item.');
+    tratarErroFirebase(error, 'Erro ao atualizar o item no servidor.');
     return false;
   }
 }
 
 async function removerListaPendenteFirebase(docId) {
   try { await deleteDoc(doc(db, 'listaPendentes', docId)); }
-  catch (error) { tratarErroFirebase(error, 'Erro ao remover.'); }
+  catch (error) { tratarErroFirebase(error, 'Erro ao remover do servidor.'); }
 }
